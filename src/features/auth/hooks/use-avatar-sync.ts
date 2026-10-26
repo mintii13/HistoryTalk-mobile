@@ -18,9 +18,9 @@ export function useAvatarSync() {
   const isDirectUrl = !!rawAvatarUrl && /^https?:\/\//.test(rawAvatarUrl);
 
   const { data: signed } = useQuery({
-    queryKey: ['avatar-view-url', profile?._id, rawAvatarUrl],
-    queryFn: () => userApi.getAvatarViewUrl(profile!._id),
-    enabled: !!profile?._id && !!rawAvatarUrl && !isDirectUrl,
+    queryKey: ['avatar-view-url', profile?.uid, rawAvatarUrl],
+    queryFn: () => userApi.getAvatarViewUrl(profile!.uid),
+    enabled: !!profile?.uid && !!rawAvatarUrl && !isDirectUrl,
     staleTime: 1000 * 60 * 30,
   });
 

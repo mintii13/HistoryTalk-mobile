@@ -1,9 +1,10 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { useEventListener } from "expo";
 import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { VideoView, useVideoPlayer } from "expo-video";
 import { ArrowLeft, FileText, Play, Trophy, X } from "lucide-react-native";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Linking,
   Modal,
@@ -34,6 +35,7 @@ import { ERA_COLORS, getCharacterImageUri, type Character } from "@/features/cha
 import { DocumentCitationModal } from "@/features/documents/DocumentCitationModal";
 import { usePublicContextDocuments } from "@/features/documents/hooks";
 import type { RagDocument } from "@/features/documents/types";
+import { recordStudyActivity } from "@/features/gamification/study-check-in";
 import { useHistoricalContext } from "@/features/historical-contexts/hooks/use-historical-context";
 import { formatContextYear, getContextImageUri } from "@/features/historical-contexts/types";
 
@@ -344,6 +346,14 @@ export default function ContextDetailScreen() {
   const [manualVideoId, setManualVideoId] = useState<string | null>(null);
   const [openDocumentId, setOpenDocumentId] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const queryClient = useQueryClient();
+
+  // Mở được 1 bối cảnh = 1 hoạt động học → điểm danh chuỗi ngày học (giống web)
+  const loadedContextId = ctx?.id;
+  useEffect(() => {
+    if (loadedContextId) recordStudyActivity(queryClient);
+  }, [loadedContextId, queryClient]);
+
   async function onRefresh() {
     setRefreshing(true);
     try {

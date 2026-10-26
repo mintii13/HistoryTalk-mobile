@@ -1,5 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
+import { recordStudyActivity } from '@/features/gamification/study-check-in';
+
 import { chatApi } from '../api';
 import type { ChatMessageType } from '../types';
 
@@ -15,6 +17,7 @@ export function useSendMessage() {
       // Gửi tin xong → tiến độ nhiệm vụ ngày đổi ngay
       // (chat streaming không đi qua mutation này — đã có focus-refetch ở thẻ Hôm nay lo)
       void queryClient.invalidateQueries({ queryKey: ['gamification', 'today'] });
+      recordStudyActivity(queryClient);
     },
   });
 }

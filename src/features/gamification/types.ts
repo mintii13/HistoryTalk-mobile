@@ -35,3 +35,11 @@ export interface ClaimResult {
   rewardTokens: number;
   tokenBalance: number;
 }
+
+export interface DailyCheckInResult {
+  date: string;
+  streakCount: number;
+  rewardTokens: number;
+  tokenBalance: number;
+  alreadyCheckedInToday: boolean;
+}

@@ -1,3 +1,5 @@
+import type { BattleMap } from '@/features/map/battle-map';
+
 import type { CharacterEra } from '../characters/types';
 
 export type ContextEra = CharacterEra;
@@ -29,6 +31,8 @@ export interface HistoricalContext {
   imageUrl?: string;
   image?: string;
   videoUrl?: string;
+  /** Lược đồ trận đánh (Content Admin soạn trên web); null nếu chưa có. */
+  battleMap?: BattleMap | null;
   characterIds: ContextCharacter[];
   isPublished: boolean;
   isActive: boolean;

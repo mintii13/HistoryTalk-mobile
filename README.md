@@ -153,10 +153,10 @@ Tất cả biến phía client phải có tiền tố `EXPO_PUBLIC_` (quy ước
 
 | Nền tảng | Giá trị |
 |---|---|
-| Android Emulator (mặc định) | `http://10.0.2.2:5000/api/v1` |
-| Android Emulator (khi 10.0.2.2 không ổn định — xem [Vấn đề đã biết](#vấn-đề-đã-biết)) | `http://127.0.0.1:5000/api/v1` + `adb reverse tcp:5000 tcp:5000` |
-| iOS Simulator | `http://localhost:5000/api/v1` |
-| Thiết bị thật (cùng mạng LAN) | `http://<ip-máy-chạy-backend>:5000/api/v1` |
+| Android Emulator (mặc định) | `http://10.0.2.2:8080/Historical-tell/api/v1` |
+| Android Emulator (khi 10.0.2.2 không ổn định — xem [Vấn đề đã biết](#vấn-đề-đã-biết)) | `http://127.0.0.1:8080/Historical-tell/api/v1` + `adb reverse tcp:8080 tcp:8080` |
+| iOS Simulator | `http://localhost:8080/Historical-tell/api/v1` |
+| Thiết bị thật (cùng mạng LAN) | `http://<ip-máy-chạy-backend>:8080/Historical-tell/api/v1` |
 
 > ⚠️ `EXPO_PUBLIC_*` được nhúng vào JS bundle **tại thời điểm Metro build**, không phải lúc app chạy. Đổi `.env` xong **phải khởi động lại `expo start`** (khuyến khích kèm `--clear` để xoá cache Metro) — chỉ reload/refresh app trong lúc Metro cũ vẫn chạy sẽ **không** thấy giá trị mới.
 

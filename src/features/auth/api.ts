@@ -2,7 +2,7 @@ import axios from 'axios';
 
 import type { ApiResponse, AuthResponse, RefreshTokenResponse } from './types';
 
-const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:5000/api/v1';
+const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8080/Historical-tell/api/v1';
 
 const http = axios.create({ baseURL: BASE_URL, validateStatus: () => true });
 

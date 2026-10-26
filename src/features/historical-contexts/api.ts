@@ -1,3 +1,4 @@
+import { isBattleMap } from '@/features/map/battle-map';
 import { apiClient } from '@/lib/api-client';
 
 import type { ContextEra, HistoricalContext, HistoricalContextPage } from './types';
@@ -9,7 +10,8 @@ interface ListParams {
   era?: ContextEra;
 }
 
-type ApiHistoricalContext = Omit<HistoricalContext, 'id' | 'characterIds' | 'createdAt' | 'updatedAt'> & {
+type ApiHistoricalContext = Omit<HistoricalContext, 'id' | 'characterIds' | 'createdAt' | 'updatedAt' | 'battleMap'> & {
+  battleMap?: unknown;
   id?: string;
   contextId?: string;
   characterIds?: HistoricalContext['characterIds'];
@@ -24,6 +26,7 @@ function normalizeHistoricalContext(context: ApiHistoricalContext): HistoricalCo
     ...context,
     id: context.id ?? context.contextId ?? '',
     characterIds: context.characterIds ?? [],
+    battleMap: isBattleMap(context.battleMap) ? context.battleMap : null,
     createdAt: context.createdAt ?? context.createdDate ?? '',
     updatedAt: context.updatedAt ?? context.updatedDate ?? '',
   };

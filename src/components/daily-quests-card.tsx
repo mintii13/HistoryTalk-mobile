@@ -13,6 +13,7 @@ import { useCallback, useState } from 'react';
 import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from 'react-native';
 import Animated, { FadeIn, ZoomIn } from 'react-native-reanimated';
 
+import { StudyCalendarModal } from '@/components/study-calendar-modal';
 import { Text } from '@/components/ui/text';
 import {
   BORDER,
@@ -70,6 +71,7 @@ export function DailyQuestsCard() {
   const { mutateAsync: claim, isPending: claiming } = useClaimQuest();
   const [claimingId, setClaimingId] = useState<string | null>(null);
   const [justClaimed, setJustClaimed] = useState<string | null>(null);
+  const [calendarOpen, setCalendarOpen] = useState(false);
 
   // Quay lại Home (sau khi chat/làm quiz/đọc bối cảnh) → đồng bộ tiến độ ngay
   useFocusEffect(
@@ -99,69 +101,80 @@ export function DailyQuestsCard() {
 
   return (
     <Animated.View entering={FadeIn.duration(300)} style={s.card}>
-      {/* ── Khối streak (theo mẫu: số to + 7 chấm tuần + 2 chỉ số) ── */}
-      <View style={s.streakHeader}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-          {/* Luon to mau (giong emoji 🔥 tren widget) thay vi phu thuoc
-              studiedToday — ket qua hoc hom nay da the hien qua streak count. */}
-          <Flame size={17} color={ORANGE} strokeWidth={2.2} fill={ORANGE} />
-          <Text style={s.title}>Chuỗi ngày học</Text>
+      {/* ── Khối streak (theo mẫu: số to + 7 chấm tuần + 2 chỉ số) ──
+          Bấm vào khối streak → mở lịch ngày học theo tháng (giống web) */}
+      <TouchableOpacity
+        activeOpacity={0.7}
+        onPress={() => setCalendarOpen(true)}
+        accessibilityLabel="Xem lịch chuỗi ngày học"
+      >
+        <View style={s.streakHeader}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            {/* Luon to mau (giong emoji 🔥 tren widget) thay vi phu thuoc
+                studiedToday — ket qua hoc hom nay da the hien qua streak count. */}
+            <Flame size={17} color={ORANGE} strokeWidth={2.2} fill={ORANGE} />
+            <Text style={s.title}>Chuỗi ngày học</Text>
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 4 }}>
+            <Text style={s.streakBig}>{data.streakCount}</Text>
+            <Text style={s.streakUnit}>ngày</Text>
+          </View>
         </View>
-        <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 4 }}>
-          <Text style={s.streakBig}>{data.streakCount}</Text>
-          <Text style={s.streakUnit}>ngày</Text>
-        </View>
-      </View>
 
-      {/* 7 chấm tuần T2 → CN */}
-      <View style={s.weekRow}>
-        {(() => {
-          const todayIndex = data.week.findIndex((d) => d.isToday);
-          return data.week.map((d, i) => {
-            const state = getWeekDayState(d.studied, d.isToday, i, todayIndex);
-            return (
-              <View key={d.date} style={s.weekDay}>
-                <View
-                  style={[
-                    s.weekDot,
-                    d.studied && s.weekDotStudied,
-                    d.isToday && (d.studied ? s.weekDotTodayRing : s.weekDotToday),
-                    state === 'missed' && s.weekDotMissed,
-                  ]}
-                >
-                  {d.studied ? (
-                    <Check size={13} color="#fff" strokeWidth={3} />
-                  ) : state === 'missed' ? (
-                    <Text style={s.weekDotMissedMark}>!</Text>
-                  ) : null}
+        {/* 7 chấm tuần T2 → CN */}
+        <View style={s.weekRow}>
+          {(() => {
+            const todayIndex = data.week.findIndex((d) => d.isToday);
+            return data.week.map((d, i) => {
+              const state = getWeekDayState(d.studied, d.isToday, i, todayIndex);
+              return (
+                <View key={d.date} style={s.weekDay}>
+                  <View
+                    style={[
+                      s.weekDot,
+                      d.studied && s.weekDotStudied,
+                      d.isToday && (d.studied ? s.weekDotTodayRing : s.weekDotToday),
+                      state === 'missed' && s.weekDotMissed,
+                    ]}
+                  >
+                    {d.studied ? (
+                      <Check size={13} color="#fff" strokeWidth={3} />
+                    ) : state === 'missed' ? (
+                      <Text style={s.weekDotMissedMark}>!</Text>
+                    ) : null}
+                  </View>
+                  <Text
+                    style={[
+                      s.weekLabel,
+                      d.studied && { color: STREAK_GREEN, fontWeight: '800' },
+                      d.isToday && !d.studied && { color: ORANGE, fontWeight: '800' },
+                      state === 'missed' && { color: RED, fontWeight: '800' },
+                    ]}
+                  >
+                    {WEEKDAY_LABELS[i]}
+                  </Text>
                 </View>
-                <Text
-                  style={[
-                    s.weekLabel,
-                    d.studied && { color: STREAK_GREEN, fontWeight: '800' },
-                    d.isToday && !d.studied && { color: ORANGE, fontWeight: '800' },
-                    state === 'missed' && { color: RED, fontWeight: '800' },
-                  ]}
-                >
-                  {WEEKDAY_LABELS[i]}
-                </Text>
-              </View>
-            );
-          });
-        })()}
-      </View>
+              );
+            });
+          })()}
+        </View>
 
-      {/* Kỷ lục + tổng ngày học */}
-      <View style={s.statsRow}>
-        <View style={{ flex: 1 }}>
-          <Text style={s.statLabel}>Chuỗi dài nhất</Text>
-          <Text style={s.statValue}>{data.longestStreak} ngày</Text>
+        {/* Kỷ lục + tổng ngày học */}
+        <View style={s.statsRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={s.statLabel}>Chuỗi dài nhất</Text>
+            <Text style={s.statValue}>{data.longestStreak} ngày</Text>
+          </View>
+          <View style={{ flex: 1, alignItems: 'flex-end' }}>
+            <Text style={s.statLabel}>Tổng ngày học</Text>
+            <Text style={s.statValue}>{data.totalStudyDays}</Text>
+          </View>
         </View>
-        <View style={{ flex: 1, alignItems: 'flex-end' }}>
-          <Text style={s.statLabel}>Tổng ngày học</Text>
-          <Text style={s.statValue}>{data.totalStudyDays}</Text>
+        <View style={s.calendarHint}>
+          <Text style={s.calendarHintText}>Xem lịch học</Text>
+          <ChevronRight size={13} color={ORANGE} strokeWidth={2.4} />
         </View>
-      </View>
+      </TouchableOpacity>
 
       <View style={s.divider} />
 
@@ -262,6 +275,12 @@ export function DailyQuestsCard() {
           );
         })}
       </View>
+
+      <StudyCalendarModal
+        today={data.date}
+        visible={calendarOpen}
+        onClose={() => setCalendarOpen(false)}
+      />
     </Animated.View>
   );
 }
@@ -372,6 +391,18 @@ const s = StyleSheet.create({
     fontSize: 15,
     fontWeight: '800',
     marginTop: 1,
+  },
+  calendarHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 2,
+    marginTop: 8,
+  },
+  calendarHintText: {
+    color: ORANGE,
+    fontSize: 11,
+    fontWeight: '700',
   },
   divider: {
     height: 1,

@@ -3,6 +3,7 @@ import { useRouter } from "expo-router";
 import {
   ChevronRight,
   LogOut,
+  Map as MapIcon,
   Mail,
   MessageCircle,
   Trophy,
@@ -251,6 +252,27 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
         </View>
+
+        {/* ── Bản đồ trận đánh (giống mục "Bản đồ" bên web) ────────── */}
+        <TouchableOpacity
+          onPress={() => router.push("/map")}
+          activeOpacity={0.8}
+          style={styles.mapCard}
+          accessibilityLabel="Mở bản đồ trận đánh"
+        >
+          <View style={styles.mapIcon}>
+            <MapIcon size={20} color={ORANGE} strokeWidth={2} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: TEXT, fontSize: 15, fontWeight: "800" }}>
+              Bản đồ trận đánh
+            </Text>
+            <Text style={{ color: MUTED, fontSize: 12, marginTop: 1 }}>
+              Những trận đánh làm nên lịch sử, theo từng giai đoạn
+            </Text>
+          </View>
+          <ChevronRight size={18} color={MUTED} />
+        </TouchableOpacity>
 
         {/* ── Nhiệm vụ hằng ngày + streak ─────────────────────────── */}
         <DailyQuestsCard />
@@ -778,6 +800,26 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
+  mapCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginHorizontal: 20,
+    marginBottom: 24,
+    padding: 14,
+    borderRadius: 18,
+    backgroundColor: CARD,
+    borderWidth: 1,
+    borderColor: BORDER,
+  },
+  mapIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: ORANGE_TINT,
+  },
   menu: {
     position: "absolute",
     top: 72,

@@ -19,7 +19,7 @@ export interface AuthResponse {
 }
 
 export interface UserProfile {
-  _id: string;
+  uid: string;
   userName: string;
   email: string;
   fullName?: string;
@@ -31,8 +31,9 @@ export interface UserProfile {
   role: UserRole;
   token: number;
   tierId?: string;
+  tierTitle?: string;
+  subscriptionEndTime?: string | null;
   lastActiveDate?: string;
-  isActive: boolean;
   createdAt: string;
   updatedAt: string;
 }

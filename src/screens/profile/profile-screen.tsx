@@ -4,7 +4,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useRouter } from 'expo-router';
 import {
-  AlertCircle, ArrowLeft, Bell, Calendar, Camera, CheckCircle2, ChevronDown, ChevronUp, Clock, Crown,
+  AlertCircle, ArrowLeft, BarChart3, Bell, Calendar, Camera, CheckCircle2, ChevronDown, ChevronUp, Clock, Crown,
   Eye, EyeOff, KeyRound, Lock, LogOut, Mail, MapPin, Phone, Receipt, Save, Trophy, User, UserCircle, X,
 } from 'lucide-react-native';
 import { useCallback, useEffect, useState } from 'react';
@@ -232,7 +232,7 @@ export default function ProfileScreen() {
 
     try {
       const uploaded = await uploadAvatar({
-        userId: profile!._id,
+        userId: profile!.uid,
         file: {
           uri: asset.uri,
           name: asset.fileName ?? `avatar-${Date.now()}.jpg`,
@@ -568,6 +568,14 @@ export default function ProfileScreen() {
                   >
                     <Receipt size={16} color={TEXT2} strokeWidth={1.75} />
                     <Text style={{ color: TEXT2, fontWeight: '600', fontSize: 14 }}>Lịch sử thanh toán</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => router.push('/grades')}
+                    activeOpacity={0.8}
+                    style={s.historyBtn}
+                  >
+                    <BarChart3 size={16} color={TEXT2} strokeWidth={1.75} />
+                    <Text style={{ color: TEXT2, fontWeight: '600', fontSize: 14 }}>Tiến độ học tập</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     onPress={() => router.push('/quiz/history')}

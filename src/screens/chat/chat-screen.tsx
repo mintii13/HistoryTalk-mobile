@@ -71,6 +71,7 @@ import { useSendMessage } from "@/features/chat/hooks/use-send-message";
 import { useSessionMessages } from "@/features/chat/hooks/use-session-messages";
 import type { ChatMessage, ChatMessageType } from "@/features/chat/types";
 import { DocumentCitationModal } from "@/features/documents/DocumentCitationModal";
+import { recordStudyActivity } from "@/features/gamification/study-check-in";
 import { speakWithAzure, stopAzureSpeech } from "@/lib/azure-speech";
 import { playEndCallSound } from "@/lib/sound-effects";
 
@@ -914,6 +915,7 @@ export default function ChatScreen() {
               setMessages((prev) => prev.filter((m) => m.id !== assistantId));
           }
 
+          if (streamed) recordStudyActivity(queryClient);
           if (streamed && autoSpeak) void speakWithAzure(streamed);
         } else {
           const result = await sendMessage({ sessionId, content, messageType });

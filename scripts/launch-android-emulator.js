@@ -8,7 +8,8 @@
  *
  * Fix: tunnel port 8081 through `adb reverse` (ADB's own transport, not
  * SLIRP) and launch the dev-client pointed at 127.0.0.1 instead of letting
- * it auto-resolve to 10.0.2.2.
+ * it auto-resolve to 10.0.2.2. The Spring Boot backend port (8080) is tunnelled
+ * the same way, so EXPO_PUBLIC_API_URL can point at http://127.0.0.1:8080/...
  *
  * Usage: node scripts/launch-android-emulator.js
  * Requires: an emulator already booted (adb devices shows it), and
@@ -19,6 +20,7 @@ const path = require('path');
 
 const PACKAGE_NAME = 'com.anonymous.mobilehistorytalk';
 const PORT = 8081;
+const API_PORT = 8080;
 
 const adb = process.env.ANDROID_HOME
   ? path.join(process.env.ANDROID_HOME, 'platform-tools', 'adb.exe')
@@ -36,6 +38,8 @@ if (!/\bdevice\b/.test(devices.split('\n').slice(1).join('\n'))) {
 
 run(`"${adb}" reverse tcp:${PORT} tcp:${PORT}`);
 console.log(`adb reverse tcp:${PORT} tcp:${PORT} — Metro traffic now tunnels via ADB, bypassing the broken SLIRP route.`);
+run(`"${adb}" reverse tcp:${API_PORT} tcp:${API_PORT}`);
+console.log(`adb reverse tcp:${API_PORT} tcp:${API_PORT} — backend reachable at http://127.0.0.1:${API_PORT} from the emulator.`);
 
 const url = encodeURIComponent(`http://127.0.0.1:${PORT}`);
 run(

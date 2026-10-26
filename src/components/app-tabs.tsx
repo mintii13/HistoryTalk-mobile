@@ -49,9 +49,11 @@ export default function AppTabs() {
   // only way out is the in-screen "Thoát" confirm — no escaping via a tab tap.
   // Same treatment inside a chat conversation (/chat/<sessionId>): free up
   // vertical space for the message list + input bar. The /chat list and
-  // /chat/history screens keep the bar.
+  // /chat/history screens keep the bar. The immersive battle page
+  // (/map/battle/<id>) needs the full height for the battle map + player.
   const hideTabBar =
     pathname === "/quiz/play" ||
+    pathname.startsWith("/map/battle/") ||
     (pathname.startsWith("/chat/") && pathname !== "/chat/history");
   const hideProgress = useSharedValue(hideTabBar ? 1 : 0);
   const [barHeight, setBarHeight] = useState(0);

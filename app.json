@@ -1,0 +1,105 @@
+{
+  "expo": {
+    "name": "mobile-historytalk",
+    "slug": "mobile-historytalk",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/logo.png",
+    "scheme": "mobilehistorytalk",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "icon": "./assets/logo.png"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#121212",
+        "foregroundImage": "./assets/logo.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ],
+      "package": "com.anonymous.mobilehistorytalk",
+      "googleServicesFile": "./google-services.json",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ],
+          "data": [
+            {
+              "scheme": "mobilehistorytalk"
+            },
+            {
+              "scheme": "com.googleusercontent.apps.32246262095-4vihpn8j4t6v6r8cv3p7h8fqiid4r3ah"
+            }
+          ]
+        }
+      ]
+    },
+    "web": {
+      "output": "static",
+      "favicon": "./assets/logo.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#F2E8D5",
+          "android": {
+            "image": "./assets/logo.png",
+            "imageWidth": 76
+          }
+        }
+      ],
+      "expo-secure-store",
+      "expo-video",
+      [
+        "@react-native-voice/voice",
+        {
+          "microphonePermission": "Cho phep HistoryTalk su dung micro de nhap noi dung bang giong noi",
+          "speechRecognitionPermission": "Cho phep HistoryTalk nhan dang giong noi thanh van ban"
+        }
+      ],
+      "expo-audio",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Cho phep HistoryTalk su dung camera de chup anh dai dien",
+          "photosPermission": "Cho phep HistoryTalk truy cap thu vien anh de chon anh dai dien"
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#72383D"
+        }
+      ],
+      [
+        "react-native-android-widget",
+        {
+          "widgets": [
+            {
+              "name": "Streak",
+              "label": "HistoryTalk - Chuỗi ngày học",
+              "description": "Xem chuỗi ngày học và một nhân vật lịch sử ngẫu nhiên",
+              "minWidth": "250dp",
+              "minHeight": "120dp",
+              "targetCellWidth": 3,
+              "targetCellHeight": 2,
+              "updatePeriodMillis": 1800000
+            }
+          ]
+        }
+      ],
+      "@react-native-community/datetimepicker"
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    }
+  }
+}

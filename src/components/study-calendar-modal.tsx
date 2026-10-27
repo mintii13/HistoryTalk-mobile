@@ -169,7 +169,7 @@ const s = StyleSheet.create({
   card: {
     width: '100%',
     maxWidth: 400,
-    borderRadius: 18,
+    borderRadius: 12,
     backgroundColor: CARD,
     borderWidth: 1,
     borderColor: BORDER,

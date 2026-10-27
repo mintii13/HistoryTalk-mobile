@@ -9,6 +9,7 @@ import {
   MessageCircle,
   Trophy,
 } from 'lucide-react-native';
+import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from 'react-native';
 import Animated, { FadeIn, ZoomIn } from 'react-native-reanimated';
@@ -67,17 +68,19 @@ function getWeekDayState(
 
 export function DailyQuestsCard() {
   const router = useRouter();
-  const { data, isLoading, isError, refetch } = useGamificationToday();
+  const queryClient = useQueryClient();
+  const { data, isLoading, isError } = useGamificationToday();
   const { mutateAsync: claim, isPending: claiming } = useClaimQuest();
   const [claimingId, setClaimingId] = useState<string | null>(null);
   const [justClaimed, setJustClaimed] = useState<string | null>(null);
   const [calendarOpen, setCalendarOpen] = useState(false);
 
-  // Quay lại Home (sau khi chat/làm quiz/đọc bối cảnh) → đồng bộ tiến độ ngay
+  // Quay lại Home (sau khi chat/làm quiz/đọc bối cảnh) → đồng bộ tiến độ ngay.
+  // invalidate (khác refetch) tôn trọng `enabled`: khách / học sinh không gọi API.
   useFocusEffect(
     useCallback(() => {
-      void refetch();
-    }, [refetch]),
+      void queryClient.invalidateQueries({ queryKey: ['gamification', 'today'] });
+    }, [queryClient]),
   );
 
   // Không có dữ liệu (đang tải lần đầu / lỗi mạng) → ẩn thẻ, không chặn Home
@@ -167,7 +170,7 @@ export function DailyQuestsCard() {
           </View>
           <View style={{ flex: 1, alignItems: 'flex-end' }}>
             <Text style={s.statLabel}>Tổng ngày học</Text>
-            <Text style={s.statValue}>{data.totalStudyDays}</Text>
+            <Text style={s.statValue}>{data.totalStudyDays ?? '—'}</Text>
           </View>
         </View>
         <View style={s.calendarHint}>
@@ -219,7 +222,7 @@ export function DailyQuestsCard() {
               <View style={{ flex: 1, gap: 5 }}>
                 <Text
                   style={[s.questTitle, q.claimed && s.questTitleDone]}
-                  numberOfLines={1}
+                  numberOfLines={2}
                 >
                   {q.title}
                 </Text>
@@ -290,7 +293,7 @@ const s = StyleSheet.create({
     marginHorizontal: 20,
     marginBottom: 24,
     backgroundColor: CARD,
-    borderRadius: 20,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: BORDER,
     padding: 16,
@@ -363,7 +366,7 @@ const s = StyleSheet.create({
   // giong dotSvg 'missed' cua widget (streak-widget.tsx) de tranh cam giac
   // trong rong khi so voi cac cham da hoc.
   weekDotMissed: {
-    backgroundColor: 'rgba(154,63,67,0.10)',
+    backgroundColor: 'rgba(201,98,14,0.10)',
     borderWidth: 1.5,
     borderColor: RED,
   },
@@ -416,7 +419,7 @@ const s = StyleSheet.create({
     backgroundColor: SURFACE,
     borderWidth: 1,
     borderColor: BORDER,
-    borderRadius: 14,
+    borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
   },

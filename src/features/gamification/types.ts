@@ -22,8 +22,10 @@ export interface WeekDay {
 export interface GamificationToday {
   date: string;
   streakCount: number;
+  /** BE chua tra — mac dinh bang streakCount. */
   longestStreak: number;
-  totalStudyDays: number;
+  /** BE chua tra — undefined thi hien "—". */
+  totalStudyDays?: number;
   studiedToday: boolean;
   week: WeekDay[];
   quests: DailyQuest[];

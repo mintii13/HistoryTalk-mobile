@@ -4,6 +4,18 @@ import { secureStorage as SecureStore } from '@/lib/secure-storage';
 import { authApi } from './api';
 import type { AuthResponse, AuthUser } from './types';
 
+/** Thoi diem het han (ms) doc tu claim `exp` cua JWT; 0 neu khong doc duoc. */
+function tokenExpiresAt(token: string): number {
+  try {
+    const b64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    const payload = b64.padEnd(b64.length + ((4 - (b64.length % 4)) % 4), '=');
+    const exp = JSON.parse(atob(payload)).exp;
+    return typeof exp === 'number' ? exp * 1000 : 0;
+  } catch {
+    return 0;
+  }
+}
+
 const KEYS = {
   ACCESS_TOKEN: 'access_token',
   REFRESH_TOKEN: 'refresh_token',
@@ -68,6 +80,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       );
 
       if (accessToken && refreshToken && userJson) {
+        // Token con han: vao app ngay, khong cho mot luot refresh (BE cham thi man dau phai doi).
+        // Het han giua chung thi api-client tu refresh khi gap 401.
+        if (tokenExpiresAt(accessToken) > Date.now() + 60_000) {
+          set({ isLoading: false, isAuthenticated: true, user: JSON.parse(userJson) as AuthUser, accessToken, refreshToken });
+          return;
+        }
         try {
           // Validate session bằng cách refresh ngay khi khởi động
           const refreshed = await authApi.refreshToken(refreshToken);

@@ -7,50 +7,13 @@ import { Text } from '@/components/ui/text';
 import { BG, BORDER, CARD, MUTED, ORANGE, TEXT } from '@/constants/palette';
 
 import { LEAFLET_HTML } from './leaflet-html';
+import type {
+  HistoricalLeafletMapHandle,
+  HistoricalLeafletMapProps,
+  PageMessage,
+} from './historical-leaflet-map.types';
 
-/** 1 trận đã được ghim trên bản đồ chung. */
-export interface MapBattleMarker {
-  id: string;
-  title: string;
-  yearLabel: string;
-  imageUrl?: string;
-  lat: number;
-  lng: number;
-}
-
-/** 1 ghi chú học tập (ghim USER) của người xem. */
-export interface MapNoteMarker {
-  id: string;
-  lat: number;
-  lng: number;
-}
-
-export interface HistoricalLeafletMapHandle {
-  /** `cover`: phần chiều cao bản đồ bị che từ dưới lên (0–1), để điểm đến không nằm sau bảng thông tin. */
-  flyTo: (lat: number, lng: number, zoom: number, cover?: number) => void;
-  focusPoint: (lat: number, lng: number, cover?: number) => void;
-  resetView: () => void;
-}
-
-interface HistoricalLeafletMapProps {
-  battles: MapBattleMarker[];
-  notes: MapNoteMarker[];
-  selectedBattleId: string | null;
-  selectedNoteId: string | null;
-  /** Vị trí ghi chú đang soạn (chưa lưu). */
-  draft: { lat: number; lng: number } | null;
-  /** Đang chọn vị trí: chạm marker không chọn trận, chỉ chạm nền bản đồ. */
-  placing: boolean;
-  onSelectBattle: (id: string) => void;
-  onSelectNote: (id: string) => void;
-  onMapPress: (coords: { latitude: number; longitude: number }) => void;
-}
-
-type PageMessage =
-  | { type: 'ready' }
-  | { type: 'battle'; id: string }
-  | { type: 'note'; id: string }
-  | { type: 'mapClick'; lat: number; lng: number };
+export type { HistoricalLeafletMapHandle, MapBattleMarker, MapNoteMarker } from './historical-leaflet-map.types';
 
 /**
  * Bản đồ trận đánh: Leaflet trong WebView (giống hệt nền bản đồ web), marker
@@ -69,10 +32,16 @@ export const HistoricalLeafletMap = forwardRef<HistoricalLeafletMapHandle, Histo
     const call = (fn: string, ...args: unknown[]) =>
       run(`window.HT&&window.HT.${fn}(${args.map((a) => JSON.stringify(a ?? null)).join(',')})`);
 
+    // Lenh camera gui truoc khi trang Leaflet san sang (vd. mo /map?battle=...) bi bo qua: nho lai, chay khi ready.
+    const pendingCamera = useRef<[string, ...unknown[]] | null>(null);
+    const camera = (fn: string, ...args: unknown[]) => {
+      pendingCamera.current = [fn, ...args];
+      call(fn, ...args);
+    };
     useImperativeHandle(ref, () => ({
-      flyTo: (lat, lng, zoom, cover = 0) => call('flyTo', lat, lng, zoom, cover),
-      focusPoint: (lat, lng, cover = 0) => call('focusPoint', lat, lng, cover),
-      resetView: () => call('resetView'),
+      flyTo: (lat, lng, zoom, cover = 0) => camera('flyTo', lat, lng, zoom, cover),
+      focusPoint: (lat, lng, cover = 0) => camera('focusPoint', lat, lng, cover),
+      resetView: () => camera('resetView'),
     }));
 
     useEffect(() => { if (ready) call('setBattles', battles); }, [ready, battles]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -80,6 +49,7 @@ export const HistoricalLeafletMap = forwardRef<HistoricalLeafletMapHandle, Histo
     useEffect(() => { if (ready) call('setSelected', selectedBattleId, selectedNoteId); }, [ready, selectedBattleId, selectedNoteId]); // eslint-disable-line react-hooks/exhaustive-deps
     useEffect(() => { if (ready) call('setDraft', draft); }, [ready, draft]); // eslint-disable-line react-hooks/exhaustive-deps
     useEffect(() => { if (ready) call('setPlacing', placing); }, [ready, placing]); // eslint-disable-line react-hooks/exhaustive-deps
+    useEffect(() => { if (ready && pendingCamera.current) call(...pendingCamera.current); }, [ready]); // eslint-disable-line react-hooks/exhaustive-deps
 
     function onMessage(e: WebViewMessageEvent) {
       let msg: PageMessage;

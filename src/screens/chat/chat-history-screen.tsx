@@ -1,4 +1,3 @@
-﻿import { useMutation, useQueries, useQueryClient } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import {
@@ -20,10 +19,10 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { EmptyState } from "@/components/empty-state";
 import { ConfirmModal, confirmModalStyles } from "@/components/confirm-modal";
 import { Text } from "@/components/ui/text";
 import {
-  BG,
   BORDER,
   CARD,
   MUTED,
@@ -32,13 +31,11 @@ import {
   TEXT,
   TEXT2,
 } from "@/constants/palette";
-import { characterApi } from "@/features/characters/api";
-import {
-  getCharacterImageUri,
-  type Character,
-} from "@/features/characters/types";
-import { chatApi } from "@/features/chat/api";
+import { useCharactersByIds } from "@/features/characters/hooks/use-characters-by-ids";
+import { getCharacterImageUri } from "@/features/characters/types";
 import { useChatHistory } from "@/features/chat/hooks/use-chat-history";
+import { useDeleteSession } from "@/features/chat/hooks/use-delete-session";
+import { sessionTime as getSessionTime } from "@/features/chat/session-time";
 import type { ChatHistoryGroup, ChatSession } from "@/features/chat/types";
 
 type RawHistoryItem = Partial<ChatHistoryGroup & ChatSession>;
@@ -68,10 +65,6 @@ function getCharacterLabel(session: ChatSession) {
     session.characterTitle ??
     "Đang tải thông tin nhân vật..."
   );
-}
-
-function isCharacter(value: Character | undefined): value is Character {
-  return !!value;
 }
 
 function getDeleteErrorMessage(error: unknown) {
@@ -117,12 +110,6 @@ function normalizeHistory(
   }
 
   return [...grouped.values()].filter((group) => group.sessions.length > 0);
-}
-
-function getSessionTime(session: ChatSession) {
-  const value = session.lastMessageAt ?? session.updatedAt ?? session.createdAt;
-  const time = value ? new Date(value).getTime() : 0;
-  return Number.isNaN(time) ? 0 : time;
 }
 
 function groupByCharacter(groups: ChatHistoryGroup[]): CharacterHistoryGroup[] {
@@ -287,11 +274,9 @@ function CharacterGroup({
 
 export default function ChatHistoryScreen() {
   const router = useRouter();
-  const queryClient = useQueryClient();
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(
     {},
   );
-  const [deletingId, setDeletingId] = useState<string | undefined>();
   const [pendingDelete, setPendingDelete] = useState<ChatSession | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { data, isLoading, isError, refetch, isRefetching } = useChatHistory();
@@ -300,19 +285,7 @@ export default function ChatHistoryScreen() {
   const characterIds = [
     ...new Set(characterGroups.map((group) => group.characterId)),
   ].filter((id) => id && !id.startsWith("unknown-"));
-  const characterQueries = useQueries({
-    queries: characterIds.map((id) => ({
-      queryKey: ["characters", id],
-      queryFn: () => characterApi.getById(id),
-      staleTime: 5 * 60 * 1000,
-    })),
-  });
-  const characterById = new Map(
-    characterQueries
-      .map((query) => query.data)
-      .filter(isCharacter)
-      .map((character) => [character.id, character] as const),
-  );
+  const characterById = useCharactersByIds(characterIds);
   const displayGroups = characterGroups.map((group) => {
     const character = characterById.get(group.characterId);
     return {
@@ -331,18 +304,8 @@ export default function ChatHistoryScreen() {
     }));
   }
 
-  const deleteSession = useMutation({
-    mutationFn: (sessionId: string) => chatApi.deleteSession(sessionId),
-    onMutate: (sessionId) => setDeletingId(sessionId),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["chat-history"] });
-      setPendingDelete(null);
-    },
-    onError: (error) => {
-      setErrorMessage(getDeleteErrorMessage(error));
-    },
-    onSettled: () => setDeletingId(undefined),
-  });
+  const deleteSession = useDeleteSession();
+  const deletingId = deleteSession.isPending ? deleteSession.variables : undefined;
 
   function handleDeleteSession(session: ChatSession) {
     setPendingDelete(session);
@@ -350,7 +313,10 @@ export default function ChatHistoryScreen() {
 
   function confirmDeleteSession() {
     if (!pendingDelete || deleteSession.isPending) return;
-    deleteSession.mutate(pendingDelete.id);
+    deleteSession.mutate(pendingDelete.id, {
+      onSuccess: () => setPendingDelete(null),
+      onError: (error) => setErrorMessage(getDeleteErrorMessage(error)),
+    });
   }
 
   return (
@@ -392,16 +358,15 @@ export default function ChatHistoryScreen() {
           refreshing={isRefetching}
           onRefresh={() => void refetch()}
           ListEmptyComponent={
-            <View style={s.center}>
-              <Text style={s.emptyTitle}>
-                {isError ? "Không thể tải lịch sử" : "Chưa có cuộc trò chuyện"}
-              </Text>
-              <Text style={s.emptyText}>
-                {isError
-                  ? "Keo xuong de thu lai."
-                  : "Chon mot nhan vat de tao session chat moi."}
-              </Text>
-            </View>
+            isError ? (
+              <EmptyState mood="sad" title="Không thể tải lịch sử" description="Kéo xuống để thử lại." />
+            ) : (
+              <EmptyState
+                title="Chưa có cuộc trò chuyện"
+                description="Chọn một nhân vật để bắt đầu cuộc trò chuyện đầu tiên."
+                action={{ label: "Chọn nhân vật", onPress: () => router.push("/characters") }}
+              />
+            )
           }
         />
       )}
@@ -480,7 +445,7 @@ const s = StyleSheet.create({
   group: {
     gap: 10,
     padding: 12,
-    borderRadius: 16,
+    borderRadius: 12,
     backgroundColor: CARD,
     borderWidth: 1,
     borderColor: BORDER,
@@ -557,16 +522,5 @@ const s = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 24,
-  },
-  emptyTitle: {
-    color: TEXT,
-    fontSize: 16,
-    fontWeight: "800",
-  },
-  emptyText: {
-    color: MUTED,
-    fontSize: 13,
-    textAlign: "center",
-    marginTop: 6,
   },
 });

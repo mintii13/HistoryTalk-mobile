@@ -1,4 +1,3 @@
-import { useQueryClient } from '@tanstack/react-query';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef } from 'react';
 import { ActivityIndicator, View } from 'react-native';
@@ -17,7 +16,6 @@ export default function PaymentResultScreen() {
     code?: string; id?: string; cancel?: string; status?: string; orderCode?: string;
   }>();
   const notifyReturn = useNotifyPayosReturn();
-  const queryClient = useQueryClient();
   const handled = useRef(false);
 
   useEffect(() => {
@@ -39,11 +37,7 @@ export default function PaymentResultScreen() {
         orderCode: orderCodeNum,
       })
       .catch(() => {})
-      .finally(() => {
-        queryClient.invalidateQueries({ queryKey: ['payments'] });
-        queryClient.invalidateQueries({ queryKey: ['me'] });
-        router.replace('/payment');
-      });
+      .finally(() => router.replace('/payment'));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

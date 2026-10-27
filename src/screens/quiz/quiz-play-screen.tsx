@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { AlertCircle, Bookmark, CheckCircle2, XCircle } from 'lucide-react-native';
+import { AlertCircle, Bookmark } from 'lucide-react-native';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator, Animated, ScrollView,
@@ -8,6 +8,8 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ConfirmDialog } from '@/components/confirm-dialog';
+import { Mascot } from '@/components/mascot/mascot';
+import { QuestionInput } from '@/components/quiz/question-input';
 import { Text } from '@/components/ui/text';
 import {
   BG,
@@ -18,15 +20,20 @@ import {
   ORANGE,
   ORANGE_TINT_FAINT,
   RED,
-  SURFACE,
   TEXT,
   TEXT2,
 } from '@/constants/palette';
+import { useSubmitAssignment } from '@/features/assignments/hooks';
 import { useSubmitQuiz } from '@/features/quiz/hooks/use-submit-quiz';
 import { clearQuizProgress, loadQuizProgress, saveQuizProgress } from '@/features/quiz/progress-storage';
+import {
+  describeCorrectAnswer,
+  gradeAnswer,
+  hasAnswerKey,
+  isAnswerComplete,
+  toAnswerPayload,
+} from '@/features/quiz/question-data';
 import { useQuizStore } from '@/features/quiz/store';
-
-const OPTION_LETTERS = ['A', 'B', 'C', 'D'];
 
 function formatTime(secs: number) {
   const m = Math.floor(secs / 60);
@@ -41,7 +48,9 @@ export default function QuizPlayScreen() {
   const setElapsed = useQuizStore((s) => s.setElapsed);
 
   const insets     = useSafeAreaInsets();
-  const { mutateAsync: submitQuiz, isPending: submitting } = useSubmitQuiz();
+  const { mutateAsync: submitQuiz, isPending: submittingQuiz } = useSubmitQuiz();
+  const { mutateAsync: submitAssignment, isPending: submittingAssignment } = useSubmitAssignment();
+  const submitting = submittingQuiz || submittingAssignment;
 
   const [currentIdx, setCurrentIdx] = useState(0);
   const [timeLeft,   setTimeLeft]   = useState(active?.session.limitedTime ?? 0);
@@ -65,11 +74,13 @@ export default function QuizPlayScreen() {
   const submittingRef    = useRef(false);
   const timedOutRef      = useRef(false);
   const timeoutRetryRef  = useRef(0);
+  // Goi lai doSubmit tu setTimeout ma khong tu tham chieu trong chinh useCallback.
+  const retrySubmitRef   = useRef<() => void>(() => {});
 
   const questions     = active?.session.questions ?? [];
   const userAnswers   = active?.userAnswers ?? {};
   const totalQ        = questions.length;
-  const answeredCount = Object.keys(userAnswers).length;
+  const answeredCount = questions.filter((q) => isAnswerComplete(q, userAnswers[q.questionId])).length;
 
   // Animated progress bar
   const [progressAnim] = useState(() => new Animated.Value(0));
@@ -90,27 +101,46 @@ export default function QuizPlayScreen() {
     if (!snap) return;
 
     const answers = snap.session.questions
-      .filter((q) => snap.userAnswers[q.questionId] !== undefined)
+      .filter((q) => isAnswerComplete(q, snap.userAnswers[q.questionId]))
       .map((q) => ({
         questionId: q.questionId,
-        selectedAnswer: snap.userAnswers[q.questionId] as number,
+        answerData: toAnswerPayload(q, snap.userAnswers[q.questionId]!),
       }));
+    const assignmentId = snap.assignmentId;
 
     try {
       await submitQuiz({ sessionId: snap.session.sessionId, answers });
       await clearQuizProgress(snap.session.quizId);
-      router.replace(`/quiz/result?sessionId=${snap.session.sessionId}`);
     } catch (e: any) {
       submittingRef.current = false;
       // When triggered by timeout: silently retry up to 3 times before showing error
       if (timedOutRef.current && timeoutRetryRef.current < 3) {
         timeoutRetryRef.current += 1;
-        setTimeout(() => void doSubmit(), 2000);
+        setTimeout(() => retrySubmitRef.current(), 2000);
       } else {
         setErrorMessage(e?.message ?? 'Không thể nộp bài. Thử lại?');
       }
+      return;
     }
-  }, [submitQuiz, router]);
+
+    // Bai tap kieu QUIZ_TEST: nop quiz xong thi nop luon bai tap bang quizSessionId.
+    if (assignmentId) {
+      try {
+        await submitAssignment({ assignmentId, payload: { quizSessionId: snap.session.sessionId } });
+      } catch {
+        setErrorMessage('Đã lưu bài làm nhưng chưa nộp được bài tập. Mở lại bài tập và bấm "Nộp lần làm trước" để thử lại.');
+        router.replace(`/assignments/${assignmentId}`);
+        return;
+      }
+      router.replace(`/assignments/${assignmentId}`);
+      return;
+    }
+    router.replace(`/quiz/result?sessionId=${snap.session.sessionId}`);
+  }, [submitQuiz, submitAssignment, router]);
+
+  useEffect(() => {
+    retrySubmitRef.current = () => void doSubmit();
+  }, [doSubmit]);
 
   // Countdown timer — only runs when there is an actual time limit
   useEffect(() => {
@@ -197,9 +227,10 @@ export default function QuizPlayScreen() {
   const isLast       = currentIdx === totalQ - 1;
   const hasTimeLimit = (active.session.limitedTime ?? 0) > 0;
   const timerWarning = hasTimeLimit && timeLeft <= 60;
-  // Che do luyen tap: lo dap an ngay khi da chon, khoa lai khong cho sua.
-  const revealed        = active.practiceMode && selected !== undefined;
-  const isAnswerCorrect = revealed && selected === question?.correctAnswer;
+  // Che do luyen tap: lo dap an ngay khi da chon (chi khi BE tra kem dap an, giong web).
+  const revealed        = !!question && active.practiceMode && question.questionType === 'MULTIPLE_CHOICE'
+    && hasAnswerKey(question) && isAnswerComplete(question, selected);
+  const isAnswerCorrect = revealed && gradeAnswer(question, selected);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: 'transparent' }} edges={['top', 'bottom']}>
@@ -211,6 +242,8 @@ export default function QuizPlayScreen() {
         </TouchableOpacity>
 
         <View style={[s.timer, timerWarning && s.timerWarn]}>
+          {/* Giong QuizProgressBar ben web: mascot hoang khi con duoi 1 phut. */}
+          <Mascot mood={timerWarning ? 'timeout' : 'idle'} size={18} arms={false} />
           <Text style={[s.timerText, timerWarning && { color: RED }]}>
             {hasTimeLimit ? formatTime(timeLeft) : '∞'}
           </Text>
@@ -266,56 +299,22 @@ export default function QuizPlayScreen() {
 
         {active.practiceMode && revealed && question && (
           <View style={[s.feedbackBanner, isAnswerCorrect ? s.feedbackCorrect : s.feedbackWrong]}>
-            {isAnswerCorrect ? (
-              <CheckCircle2 size={18} color={GREEN} strokeWidth={2.25} />
-            ) : (
-              <XCircle size={18} color={RED} strokeWidth={2.25} />
-            )}
+            <Mascot mood={isAnswerCorrect ? 'happy' : 'sad'} size={30} arms={false} />
             <Text style={[s.feedbackText, { color: isAnswerCorrect ? GREEN : RED }]}>
-              {isAnswerCorrect ? 'Chính xác!' : `Sai rồi — đáp án đúng là ${OPTION_LETTERS[question.correctAnswer]}`}
+              {isAnswerCorrect ? 'Chính xác!' : `Sai rồi — đáp án đúng là ${describeCorrectAnswer(question)}`}
             </Text>
           </View>
         )}
 
-        <View style={{ gap: 10 }}>
-          {question?.options.map((opt, i) => {
-            const isSelected = selected === i;
-            const isCorrectOpt = i === question.correctAnswer;
-            const showCorrect = revealed && isCorrectOpt;
-            const showWrong = revealed && isSelected && !isCorrectOpt;
-            const highlighted = isSelected || showCorrect;
-            return (
-              <TouchableOpacity
-                key={i}
-                onPress={() => !revealed && setAnswer(question.questionId, i)}
-                disabled={revealed}
-                activeOpacity={0.75}
-                style={[
-                  s.optionBtn,
-                  isSelected && s.optionBtnSelected,
-                  showCorrect && s.optionBtnCorrect,
-                  showWrong && s.optionBtnWrong,
-                ]}
-              >
-                <View
-                  style={[
-                    s.optionLetter,
-                    isSelected && s.optionLetterSelected,
-                    showCorrect && s.optionLetterCorrect,
-                    showWrong && s.optionLetterWrong,
-                  ]}
-                >
-                  <Text style={{ color: highlighted ? '#fff' : TEXT2, fontSize: 13, fontWeight: '800' }}>
-                    {OPTION_LETTERS[i]}
-                  </Text>
-                </View>
-                <Text style={[s.optionText, highlighted && { color: TEXT }]}>{opt}</Text>
-                {showCorrect && <CheckCircle2 size={16} color={GREEN} strokeWidth={2.5} />}
-                {showWrong && <XCircle size={16} color={RED} strokeWidth={2.5} />}
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+        {question ? (
+          <QuestionInput
+            key={question.questionId}
+            question={question}
+            answer={selected}
+            onAnswer={(a) => setAnswer(question.questionId, a)}
+            revealed={revealed}
+          />
+        ) : null}
 
         {revealed && question?.explanation && (
           <View style={s.explanationBox}>
@@ -344,7 +343,7 @@ export default function QuizPlayScreen() {
           contentContainerStyle={{ gap: 5, alignItems: 'center', paddingHorizontal: 4 }}
         >
           {questions.map((q, i) => {
-            const isAns = userAnswers[q.questionId] !== undefined;
+            const isAns = isAnswerComplete(q, userAnswers[q.questionId]);
             const isCur = i === currentIdx;
             const isFlagged = flaggedIds.has(q.questionId);
             return (
@@ -388,8 +387,9 @@ export default function QuizPlayScreen() {
         onCancel={() => setExitConfirmVisible(false)}
         onConfirm={() => {
           setExitConfirmVisible(false);
+          const exitTo = active.assignmentId ? `/assignments/${active.assignmentId}` : '/quiz';
           useQuizStore.getState().clearAll();
-          router.replace('/quiz');
+          router.replace(exitTo as never);
         }}
       />
 
@@ -425,11 +425,12 @@ const s = StyleSheet.create({
   },
   exitBtn: { paddingVertical: 6, paddingHorizontal: 2 },
   timer: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 16, paddingVertical: 7,
-    backgroundColor: CARD, borderRadius: 20,
+    backgroundColor: CARD, borderRadius: 12,
     borderWidth: 1, borderColor: BORDER,
   },
-  timerWarn: { borderColor: 'rgba(239,68,68,0.4)', backgroundColor: 'rgba(239,68,68,0.08)' },
+  timerWarn: { borderColor: 'rgba(201,98,14,0.4)', backgroundColor: 'rgba(201,98,14,0.08)' },
   timerText: { color: TEXT, fontWeight: '800', fontSize: 15 },
 
   progressTrack: { height: 3, backgroundColor: CARD },
@@ -439,42 +440,26 @@ const s = StyleSheet.create({
   qCounter:    { color: MUTED, fontSize: 12, fontWeight: '600', marginBottom: 10, textAlign: 'center' },
   flagBtn:     { width: 32, alignItems: 'flex-end', justifyContent: 'center' },
   questionCard: {
-    backgroundColor: CARD, borderRadius: 20, borderWidth: 1, borderColor: BORDER,
+    backgroundColor: CARD, borderRadius: 12, borderWidth: 1, borderColor: BORDER,
     padding: 22, marginBottom: 24,
   },
   questionText: { color: TEXT, fontSize: 17, fontWeight: '600', lineHeight: 26, textAlign: 'center' },
 
-  optionBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 14,
-    backgroundColor: CARD, borderRadius: 16, borderWidth: 1.5, borderColor: BORDER,
-    paddingHorizontal: 16, paddingVertical: 14,
-  },
-  optionBtnSelected: { borderColor: ORANGE, backgroundColor: ORANGE_TINT_FAINT },
-  optionBtnCorrect: { borderColor: GREEN, backgroundColor: 'rgba(74, 140, 98, 0.08)' },
-  optionBtnWrong: { borderColor: RED, backgroundColor: 'rgba(154, 63, 67, 0.08)' },
-  optionLetter: {
-    width: 32, height: 32, borderRadius: 10,
-    backgroundColor: SURFACE, alignItems: 'center', justifyContent: 'center',
-  },
-  optionLetterSelected: { backgroundColor: ORANGE },
-  optionLetterCorrect: { backgroundColor: GREEN },
-  optionLetterWrong: { backgroundColor: RED },
-  optionText: { flex: 1, color: TEXT2, fontSize: 14, fontWeight: '500', lineHeight: 20 },
 
   practiceBadgeWrap: { alignItems: 'center', paddingBottom: 8 },
   practiceBadge: {
-    paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20,
+    paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12,
     backgroundColor: ORANGE_TINT_FAINT, borderWidth: 1, borderColor: ORANGE,
   },
   practiceBadgeText: { color: ORANGE, fontSize: 11, fontWeight: '800' },
 
   feedbackBanner: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
-    borderRadius: 14, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 12,
+    borderRadius: 10, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 12,
     marginBottom: 16,
   },
-  feedbackCorrect: { backgroundColor: 'rgba(74, 140, 98, 0.08)', borderColor: 'rgba(74, 140, 98, 0.35)' },
-  feedbackWrong:   { backgroundColor: 'rgba(154, 63, 67, 0.08)', borderColor: 'rgba(154, 63, 67, 0.35)' },
+  feedbackCorrect: { backgroundColor: 'rgba(63, 107, 69, 0.08)', borderColor: 'rgba(63, 107, 69, 0.35)' },
+  feedbackWrong:   { backgroundColor: 'rgba(201, 98, 14, 0.08)', borderColor: 'rgba(201, 98, 14, 0.35)' },
   feedbackText: { fontSize: 13, fontWeight: '700', flex: 1 },
 
   explanationBox: {

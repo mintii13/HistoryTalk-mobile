@@ -7,8 +7,9 @@ import type {
 export const paymentApi = {
   getTiers: () => apiClient<Tier[]>('/payments/tiers'),
 
-  // platform: 'mobile' bao BE tra ve deep link (mobilehistorytalk://payment/result)
-  // lam returnUrl/cancelUrl cho PayOS thay vi URL web FE.
+  // BE hien chi doc `tierId` (CreatePaymentRequest) — `platform` bi bo qua nen PayOS
+  // redirect ve URL web; man thanh toan tu doi chieu trang thai qua /payments/me khi
+  // nguoi dung dong trinh duyet. Van gui `platform` de BE ho tro deep link sau nay.
   checkout: (tierId: string) =>
     apiClient<CheckoutResponse>('/payments/checkout', {
       method: 'POST',

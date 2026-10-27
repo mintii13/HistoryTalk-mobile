@@ -1,4 +1,3 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, ChevronRight, MessageCircle, Search, Trash2 } from 'lucide-react-native';
@@ -9,18 +8,18 @@ import {
   Pressable,
   RefreshControl,
   ScrollView,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { TextInput } from '@/components/ui/text-input';
 import { ConfirmModal } from '@/components/confirm-modal';
-import { chatApi } from '@/features/chat/api';
-import { useCreateSession } from '@/features/chat/hooks/use-create-session';
+import { useCharacterSessions } from '@/features/chat/hooks/use-character-sessions';
+import { useDeleteSession } from '@/features/chat/hooks/use-delete-session';
+import { useStartChat } from '@/features/chat/hooks/use-start-chat';
 import type { ChatSession } from '@/features/chat/types';
 
-import { Button, ButtonIcon, ButtonText } from '@/components/ui/button';
 import { Heading } from '@/components/ui/heading';
 import { Spinner } from '@/components/ui/spinner';
 import { Text } from '@/components/ui/text';
@@ -36,7 +35,7 @@ import {
   TEXT2,
 } from '@/constants/palette';
 import { useCharacter } from '@/features/characters/hooks/use-character';
-import { ERA_COLORS, getCharacterImageUri, type CharacterEra } from '@/features/characters/types';
+import { ERA_COLORS, ERA_HERO_BG, getCharacterImageUri } from '@/features/characters/types';
 
 type ActiveTab = 'info' | 'chat';
 
@@ -56,54 +55,22 @@ function formatSessionDate(value?: string) {
   return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
-const ERA_HERO_BG: Record<CharacterEra, string> = {
-  ANCIENT:      '#2C1810',
-  MEDIEVAL:     '#1A0E38',
-  MODERN:       '#0A2420',
-  CONTEMPORARY: '#0D1B2A',
-};
-
-function getSessionTime(session: ChatSession) {
-  const value = session.lastMessageAt ?? session.updatedAt ?? session.createdAt;
-  const time = value ? new Date(value).getTime() : 0;
-  return Number.isNaN(time) ? 0 : time;
-}
-
-function getLatestSession(sessions: ChatSession[], contextId: string) {
-  return sessions
-    .filter((s) => s.contextId === contextId)
-    .sort((a, b) => getSessionTime(b) - getSessionTime(a))[0];
-}
 
 export default function CharacterDetailScreen() {
   const { id }      = useLocalSearchParams<{ id: string }>();
   const resolvedId  = Array.isArray(id) ? id[0] : id;
   const router      = useRouter();
   const insets      = useSafeAreaInsets();
-  const queryClient = useQueryClient();
 
   const { data: char, isLoading, isError, refetch: refetchChar } = useCharacter(resolvedId ?? '');
-  const { mutateAsync: createSession }     = useCreateSession();
+  const { startChat: openChat, startingId } = useStartChat();
+  const creatingFor = startingId;
 
   const [activeTab, setActiveTab]         = useState<ActiveTab>('info');
   const [searchQuery, setSearchQuery]     = useState('');
-  const [creatingFor, setCreatingFor]     = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<ChatSession | null>(null);
-  const [deletingId, setDeletingId]       = useState<string | undefined>();
 
-  const { data: sessions = [], isLoading: sessionsLoading, refetch: refetchSessions } = useQuery({
-    queryKey: ['character-sessions', resolvedId],
-    queryFn: async () => {
-      if (!char?.contexts?.length) return [];
-      const results = await Promise.all(
-        char.contexts.map((ctx) =>
-          chatApi.getSessions({ characterId: resolvedId!, contextId: ctx.contextId.id }),
-        ),
-      );
-      return results.flat().sort((a, b) => getSessionTime(b) - getSessionTime(a));
-    },
-    enabled: !!resolvedId && !!char,
-  });
+  const { data: sessions = [], isLoading: sessionsLoading, refetch: refetchSessions } = useCharacterSessions(char);
 
   const [refreshing, setRefreshing] = useState(false);
   async function onRefresh() {
@@ -123,46 +90,18 @@ export default function CharacterDetailScreen() {
       .some((v) => v!.toLowerCase().includes(q));
   });
 
-  const deleteSession = useMutation({
-    mutationFn: (sessionId: string) => chatApi.deleteSession(sessionId),
-    onMutate: (sessionId) => setDeletingId(sessionId),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['character-sessions', resolvedId] });
-      await queryClient.invalidateQueries({ queryKey: ['chat-history'] });
-      setPendingDelete(null);
-    },
-    onError: (e: any) => Alert.alert('Lỗi', e?.message ?? 'Không thể xoá cuộc trò chuyện'),
-    onSettled: () => setDeletingId(undefined),
-  });
+  const deleteSession = useDeleteSession();
+  const deletingId = deleteSession.isPending ? deleteSession.variables : undefined;
 
-  async function startChat(contextId: string, contextName: string) {
-    if (creatingFor) return;
-    setCreatingFor(contextId);
-    try {
-      const existingSessions = await chatApi.getSessions({ characterId: resolvedId!, contextId });
-      const latestSession = getLatestSession(existingSessions, contextId);
-      const result = latestSession ? null : await createSession({ characterId: resolvedId!, contextId });
-      const session = latestSession ?? result?.session ?? result;
-      if (!session.id) throw new Error('Missing chat session id');
-      router.push({
-        pathname: '/chat/[sessionId]',
-        params: {
-          sessionId:          session.id,
-          characterId:        resolvedId!,
-          contextId,
-          characterName:      char?.name ?? '',
-          characterImageUrl:  char ? getCharacterImageUri(char) ?? '' : '',
-          characterModelUrl:  char?.modelUrl ?? '',
-          contextName,
-          greetingMessage:    result?.greetingMessage    ? JSON.stringify(result.greetingMessage)    : '',
-          suggestedQuestions: result?.suggestedQuestions ? JSON.stringify(result.suggestedQuestions) : '',
-        },
-      });
-    } catch (e: any) {
-      Alert.alert('Lỗi', e?.message ?? 'Không thể bắt đầu cuộc trò chuyện');
-    } finally {
-      setCreatingFor(null);
-    }
+  function deletePending(sessionId: string) {
+    deleteSession.mutate(sessionId, {
+      onSuccess: () => setPendingDelete(null),
+      onError: (e) => Alert.alert('Lỗi', e.message || 'Không thể xoá cuộc trò chuyện'),
+    });
+  }
+
+  function startChat(contextId: string, contextName: string) {
+    if (char) void openChat(char, contextId, contextName);
   }
 
   if (isLoading) {
@@ -241,7 +180,7 @@ export default function CharacterDetailScreen() {
           marginTop: 24,
           marginHorizontal: 24,
           backgroundColor: CARD,
-          borderRadius: 14,
+          borderRadius: 10,
           padding: 4,
           borderWidth: 1,
           borderColor: BORDER,
@@ -288,7 +227,7 @@ export default function CharacterDetailScreen() {
                       flexDirection: 'row',
                       alignItems: 'center',
                       backgroundColor: SURFACE,
-                      borderRadius: 14,
+                      borderRadius: 10,
                       paddingVertical: 16,
                       paddingHorizontal: 16,
                       borderWidth: 1,
@@ -326,7 +265,7 @@ export default function CharacterDetailScreen() {
               alignItems: 'center',
               gap: 10,
               backgroundColor: CARD,
-              borderRadius: 14,
+              borderRadius: 10,
               borderWidth: 1,
               borderColor: BORDER,
               paddingHorizontal: 14,
@@ -389,7 +328,7 @@ export default function CharacterDetailScreen() {
                         alignItems: 'center',
                         gap: 12,
                         padding: 14,
-                        borderRadius: 14,
+                        borderRadius: 10,
                         backgroundColor: CARD,
                         borderWidth: 1,
                         borderColor: BORDER,
@@ -473,7 +412,7 @@ export default function CharacterDetailScreen() {
             justifyContent: 'center',
             gap: 8,
             backgroundColor: ORANGE,
-            borderRadius: 14,
+            borderRadius: 10,
             paddingVertical: 12,
             opacity: (creatingFor || !char.contexts?.length) ? 0.55 : 1,
           }}
@@ -501,7 +440,7 @@ export default function CharacterDetailScreen() {
         icon={<Trash2 size={22} color="#dc2626" />}
         onCancel={() => setPendingDelete(null)}
         onConfirm={() => {
-          if (pendingDelete && !deleteSession.isPending) deleteSession.mutate(pendingDelete.id);
+          if (pendingDelete && !deleteSession.isPending) deletePending(pendingDelete.id);
         }}
       />
     </View>

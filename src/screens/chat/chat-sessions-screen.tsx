@@ -5,22 +5,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Skeleton } from '@/components/ui/skeleton';
 import { Text } from '@/components/ui/text';
-import { BG, BORDER, CARD, MUTED, ORANGE, ORANGE_TINT, TEXT } from '@/constants/palette';
+import { BORDER, CARD, MUTED, ORANGE, ORANGE_TINT, TEXT } from '@/constants/palette';
 import { useChatHistory } from '@/features/chat/hooks/use-chat-history';
 import type { ChatSession } from '@/features/chat/types';
+import { formatRelative } from '@/lib/format';
 
-function formatRelative(iso?: string) {
-  if (!iso) return '';
-  const diffMs = Date.now() - new Date(iso).getTime();
-  const min = Math.floor(diffMs / 60000);
-  if (min < 1) return 'Vừa xong';
-  if (min < 60) return `${min} phút trước`;
-  const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr} giờ trước`;
-  const day = Math.floor(hr / 24);
-  if (day < 7) return `${day} ngày trước`;
-  return new Date(iso).toLocaleDateString('vi-VN');
-}
 
 function SessionRow({ session, onPress }: { session: ChatSession; onPress: () => void }) {
   return (
@@ -42,7 +31,7 @@ function ChatSkeletons() {
   return (
     <View style={{ paddingHorizontal: 20, gap: 12 }}>
       {[0, 1, 2, 3].map((i) => (
-        <Skeleton key={i} style={{ height: 68, borderRadius: 16 }} />
+        <Skeleton key={i} style={{ height: 68, borderRadius: 12 }} />
       ))}
     </View>
   );
@@ -141,7 +130,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     backgroundColor: CARD,
-    borderRadius: 16,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: BORDER,
     paddingHorizontal: 14,

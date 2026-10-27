@@ -1,5 +1,7 @@
+import { authApi } from "@/features/auth/api";
+import { reportPlatformLock } from "@/features/auth/platform-lock";
 import { useAuthStore } from "@/features/auth/store";
-import { BASE_URL, apiClient } from "@/lib/api-client";
+import { ApiError, BASE_URL, apiClient, errorCodeOf, stripErrorCode } from "@/lib/api-client";
 
 import type {
   ChatHistoryGroup,
@@ -32,32 +34,29 @@ function readSsePayload(chunk: string): string[] {
     .filter(Boolean);
 }
 
+/**
+ * BE gui tung su kien JSON: {type:"text",data} | {type:"metadata",data:{...}} |
+ * {type:"error",message} | {type:"done",remainingTokens} (giong web chat.service).
+ * Chi "text" la noi dung tra loi; "error" la loi AI — khong duoc noi vao bong chat.
+ */
 function readTokenFromPayload(data: string): string {
   if (!data || data === "[DONE]") return "";
 
+  let parsed: any;
   try {
-    const parsed = JSON.parse(data);
-    if (parsed && parsed.success === false) {
-      throw new Error(parsed.message ?? "Yêu cầu thất bại");
-    }
-    if (typeof parsed === "string") return parsed;
-    if (typeof parsed.content === "string") return parsed.content;
-    if (typeof parsed.token === "string") return parsed.token;
-    if (typeof parsed.delta === "string") return parsed.delta;
-    if (typeof parsed.text === "string") return parsed.text;
-    if (typeof parsed.data === "string") return parsed.data;
-    if (typeof parsed.message === "string") return parsed.message;
-    if (typeof parsed.assistantMessage?.content === "string")
-      return parsed.assistantMessage.content;
-    if (typeof parsed.choices?.[0]?.delta?.content === "string")
-      return parsed.choices[0].delta.content;
-    if (typeof parsed.choices?.[0]?.text === "string")
-      return parsed.choices[0].text;
-    return "";
-  } catch (error) {
-    if (error instanceof Error) throw error;
+    parsed = JSON.parse(data);
+  } catch {
     return data;
   }
+  if (typeof parsed === "string") return parsed;
+  if (parsed?.success === false || parsed?.type === "error") {
+    throw new Error(parsed.message ?? "Nhân vật tạm thời không trả lời được. Vui lòng thử lại.");
+  }
+  if (parsed?.type === "text") return typeof parsed.data === "string" ? parsed.data : "";
+  if (parsed?.type) return ""; // metadata / done
+  if (typeof parsed?.content === "string") return parsed.content;
+  if (typeof parsed?.assistantMessage?.content === "string") return parsed.assistantMessage.content;
+  return "";
 }
 
 function readTextFromSse(raw: string, onToken?: (token: string) => void) {
@@ -105,21 +104,41 @@ export const chatApi = {
     onToken: (token: string) => void,
     messageType: ChatMessageType = "TEXT",
   ) => {
-    const res = await fetch(`${BASE_URL}/chat/messages/stream`, {
-      method: "POST",
-      headers: await authedHeaders(),
-      body: JSON.stringify({ sessionId, content, messageType }),
-    });
+    const send = async () =>
+      fetch(`${BASE_URL}/chat/messages/stream`, {
+        method: "POST",
+        headers: await authedHeaders(),
+        body: JSON.stringify({ sessionId, content, messageType }),
+      });
+
+    let res = await send();
+    // fetch() khong di qua apiClient nen tu refresh token khi het han (giong web).
+    if (res.status === 401) {
+      const refreshToken = useAuthStore.getState().refreshToken;
+      if (!refreshToken) {
+        void useAuthStore.getState().logout("expired");
+        throw new Error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
+      }
+      try {
+        const tokens = await authApi.refreshToken(refreshToken);
+        useAuthStore.getState().updateTokens(tokens.accessToken, tokens.refreshToken);
+      } catch {
+        void useAuthStore.getState().logout("expired");
+        throw new Error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
+      }
+      res = await send();
+    }
 
     if (!res.ok) {
       const raw = await res.text();
+      let message = raw;
       try {
-        const parsed = JSON.parse(raw);
-        throw new Error(parsed.message ?? raw);
-      } catch (error) {
-        if (error instanceof Error && error.message !== raw) throw error;
-        throw new Error(raw || "Không thể gửi tin nhắn");
+        message = JSON.parse(raw)?.message ?? raw;
+      } catch {
+        // body khong phai JSON
       }
+      if (res.status === 403) reportPlatformLock(message);
+      throw new ApiError(stripErrorCode(message) || "Không thể gửi tin nhắn", res.status, errorCodeOf(message));
     }
 
     const reader = res.body?.getReader();

@@ -1,9 +1,9 @@
 import { Image } from "expo-image";
-import { useRouter } from "expo-router";
+import { Redirect, useRouter } from "expo-router";
 import {
   ChevronRight,
+  LogIn,
   LogOut,
-  Map as MapIcon,
   Mail,
   MessageCircle,
   Trophy,
@@ -22,6 +22,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { CharacterCard, ContextCard } from "@/components/cards";
 import { DailyQuestsCard } from "@/components/daily-quests-card";
+import { HomeBanner } from "@/components/home/home-banner";
+import { OnThisDayCard } from "@/components/home/on-this-day-card";
+import { QuickActions } from "@/components/home/quick-actions";
 import { Heading } from "@/components/ui/heading";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Text } from "@/components/ui/text";
@@ -36,25 +39,15 @@ import {
   TEXT,
   TEXT2,
 } from "@/constants/palette";
+import { ROLE_LABELS } from "@/features/auth/roles";
 import { useAuthStore } from "@/features/auth/store";
 import { useCharacters } from "@/features/characters/hooks/use-characters";
 import { useChatHistory } from "@/features/chat/hooks/use-chat-history";
 import { useGamificationToday } from "@/features/gamification/hooks/use-today";
 import { useHistoricalContexts } from "@/features/historical-contexts/hooks/use-historical-contexts";
 import { useQuizResults } from "@/features/quiz/hooks/use-quiz-results";
+import { formatRelative } from "@/lib/format";
 
-function formatRelative(iso?: string) {
-  if (!iso) return "";
-  const diffMs = Date.now() - new Date(iso).getTime();
-  const min = Math.floor(diffMs / 60000);
-  if (min < 1) return "Vừa xong";
-  if (min < 60) return `${min} phút trước`;
-  const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr} giờ trước`;
-  const day = Math.floor(hr / 24);
-  if (day < 7) return `${day} ngày trước`;
-  return new Date(iso).toLocaleDateString("vi-VN");
-}
 
 function greeting(): string {
   const h = new Date().getHours();
@@ -89,7 +82,7 @@ function CtxSkeletons() {
             gap: 8,
             marginBottom: 8,
             backgroundColor: CARD,
-            borderRadius: 16,
+            borderRadius: 12,
             padding: 10,
             alignItems: "center",
           }}
@@ -107,9 +100,17 @@ function CtxSkeletons() {
 }
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
+// Hoc sinh (SCHOOL_STUDENT) co trang chu rieng la "Không gian lớp học" (/classes), giong web.
 export default function HomeScreen() {
+  const role = useAuthStore((s) => s.user?.role);
+  if (role === "SCHOOL_STUDENT") return <Redirect href={"/classes" as never} />;
+  return <CustomerHomeScreen />;
+}
+
+function CustomerHomeScreen() {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const logout = useAuthStore((s) => s.logout);
   const avatarUrl = useAuthStore((s) => s.avatarUrl);
   const initial = user?.userName?.charAt(0).toUpperCase() ?? "U";
@@ -133,12 +134,11 @@ export default function HomeScreen() {
   async function onRefresh() {
     setRefreshing(true);
     try {
+      // refetch() bỏ qua `enabled`: khách chỉ làm mới dữ liệu công khai.
       await Promise.all([
         refetchChars(),
         refetchCtx(),
-        refetchChat(),
-        refetchQuiz(),
-        refetchGamification(),
+        ...(isAuthenticated ? [refetchChat(), refetchQuiz(), refetchGamification()] : []),
       ]);
     } finally {
       setRefreshing(false);
@@ -178,6 +178,16 @@ export default function HomeScreen() {
               </Heading>
             </View>
           </View>
+          {!isAuthenticated ? (
+            <TouchableOpacity
+              onPress={() => router.push("/login")}
+              activeOpacity={0.8}
+              style={styles.loginBtn}
+            >
+              <LogIn size={14} color="#fff" />
+              <Text style={{ color: "#fff", fontWeight: "700", fontSize: 13 }}>Đăng nhập</Text>
+            </TouchableOpacity>
+          ) : (
           <TouchableOpacity
             onPress={() => setMenuOpen((v) => !v)}
             activeOpacity={0.8}
@@ -203,79 +213,22 @@ export default function HomeScreen() {
               </Text>
             )}
           </TouchableOpacity>
+          )}
         </View>
 
-        {/* ── Hero banner ─────────────────────────────────────────── */}
-        <View
-          style={{
-            marginHorizontal: 20,
-            marginBottom: 24,
-            borderRadius: 20,
-            overflow: "hidden",
-            backgroundColor: CARD,
-            borderWidth: 1,
-            borderColor: BORDER,
-          }}
-        >
-          {/* accent bar */}
-          <View style={{ height: 3, backgroundColor: ORANGE }} />
-          <View style={{ padding: 16 }}>
-            <Heading
-              size="xl"
-              className="leading-7 text-history-text"
-              style={{ marginBottom: 4 }}
-            >
-              Khám phá lịch sử qua từng nhân vật
-            </Heading>
-            <Text size="xs" muted style={{ lineHeight: 18, marginBottom: 12 }}>
-              Trò chuyện và tìm hiểu về các sự kiện, nhân vật lịch sử nổi tiếng
-              Việt Nam và thế giới.
-            </Text>
-            <TouchableOpacity
-              onPress={() => router.push("/characters")}
-              activeOpacity={0.8}
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 6,
-                backgroundColor: ORANGE,
-                borderRadius: 10,
-                paddingHorizontal: 14,
-                paddingVertical: 8,
-                alignSelf: "flex-start",
-              }}
-            >
-              <Text style={{ color: "#fff", fontWeight: "700", fontSize: 13 }}>
-                Bắt đầu ngay
-              </Text>
-              <ChevronRight size={14} color="#fff" />
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* ── Bản đồ trận đánh (giống mục "Bản đồ" bên web) ────────── */}
-        <TouchableOpacity
-          onPress={() => router.push("/map")}
-          activeOpacity={0.8}
-          style={styles.mapCard}
-          accessibilityLabel="Mở bản đồ trận đánh"
-        >
-          <View style={styles.mapIcon}>
-            <MapIcon size={20} color={ORANGE} strokeWidth={2} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={{ color: TEXT, fontSize: 15, fontWeight: "800" }}>
-              Bản đồ trận đánh
-            </Text>
-            <Text style={{ color: MUTED, fontSize: 12, marginTop: 1 }}>
-              Những trận đánh làm nên lịch sử, theo từng giai đoạn
-            </Text>
-          </View>
-          <ChevronRight size={18} color={MUTED} />
-        </TouchableOpacity>
+        {/* Khach: banner day du (3 buoc kham pha) roi loi tat. Da dang nhap: loi tat roi phan ca nhan ngay. */}
+        {isAuthenticated ? (
+          <QuickActions signedIn />
+        ) : (
+          <>
+            <HomeBanner />
+            <QuickActions signedIn={false} />
+          </>
+        )}
 
         {/* ── Nhiệm vụ hằng ngày + streak ─────────────────────────── */}
         <DailyQuestsCard />
+        <OnThisDayCard />
 
         {/* ── Characters (Featured) [3rd position] ────────────────── */}
         <View style={{ marginBottom: 24 }}>
@@ -362,7 +315,7 @@ export default function HomeScreen() {
                     flexDirection: "row",
                     alignItems: "center",
                     backgroundColor: CARD,
-                    borderRadius: 16,
+                    borderRadius: 12,
                     paddingHorizontal: 12,
                     paddingVertical: 10,
                     gap: 10,
@@ -535,7 +488,7 @@ export default function HomeScreen() {
                       flexDirection: "row",
                       alignItems: "center",
                       backgroundColor: CARD,
-                      borderRadius: 16,
+                      borderRadius: 12,
                       paddingHorizontal: 12,
                       paddingVertical: 10,
                       gap: 10,
@@ -713,9 +666,7 @@ export default function HomeScreen() {
                 <Text
                   style={{ color: ORANGE, fontSize: 11, fontWeight: "600" }}
                 >
-                  {user?.role === "CUSTOMER"
-                    ? "Người dùng"
-                    : (user?.role ?? "Người dùng")}
+                  {(user?.role && ROLE_LABELS[user.role]) ?? "Người dùng"}
                 </Text>
               </View>
             </View>
@@ -800,25 +751,14 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  mapCard: {
+  loginBtn: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    marginHorizontal: 20,
-    marginBottom: 24,
-    padding: 14,
-    borderRadius: 18,
-    backgroundColor: CARD,
-    borderWidth: 1,
-    borderColor: BORDER,
-  },
-  mapIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: ORANGE_TINT,
+    gap: 6,
+    backgroundColor: ORANGE,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
   },
   menu: {
     position: "absolute",
@@ -826,7 +766,7 @@ const styles = StyleSheet.create({
     right: 16,
     width: 260,
     backgroundColor: CARD,
-    borderRadius: 18,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: BORDER,
     zIndex: 200,

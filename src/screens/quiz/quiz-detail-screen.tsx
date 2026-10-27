@@ -14,6 +14,7 @@ import {
   AMBER, BG, BORDER, CARD, GREEN, MUTED, ORANGE,
   ORANGE_TINT, RED, SURFACE, TEXT,
 } from '@/constants/palette';
+import { LOGIN_PROMPTS, useLoginPromptStore } from '@/features/auth/login-prompt';
 import { useAuthStore } from '@/features/auth/store';
 import { ERA_COLORS, ERA_LABELS } from '@/features/characters/types';
 import { useStartQuiz } from '@/features/quiz/hooks/use-start-quiz';
@@ -91,10 +92,12 @@ export default function QuizDetailScreen() {
   const levelLabel = quiz ? (LEVEL_LABELS[quiz.level] ?? quiz.level) : '';
   const lc = quiz ? LEVEL_COLORS[quiz.level] : undefined;
 
+  const showLoginPrompt = useLoginPromptStore((s) => s.show);
+
   async function handleStart() {
     if (!quiz) return;
     if (!isAuthenticated) {
-      Alert.alert('Cần đăng nhập', 'Bạn cần đăng nhập để bắt đầu làm quiz.');
+      showLoginPrompt(LOGIN_PROMPTS.quiz);
       return;
     }
 
@@ -160,7 +163,7 @@ export default function QuizDetailScreen() {
         <View style={{ paddingHorizontal: 20, paddingTop: 20, gap: 16 }}>
           <Skeleton style={{ height: 32, width: '70%', borderRadius: 10 }} />
           <Skeleton style={{ height: 16, width: '50%', borderRadius: 8 }} />
-          <Skeleton style={{ height: 120, borderRadius: 18 }} />
+          <Skeleton style={{ height: 120, borderRadius: 12 }} />
         </View>
       )}
 
@@ -365,7 +368,7 @@ const ss = StyleSheet.create({
   chapterLine: { color: MUTED, fontSize: 13, marginBottom: 14 },
 
   statsCard: {
-    backgroundColor: CARD, borderRadius: 16, borderWidth: 1, borderColor: BORDER,
+    backgroundColor: CARD, borderRadius: 12, borderWidth: 1, borderColor: BORDER,
     paddingHorizontal: 16, marginBottom: 16,
   },
   statRow: {
@@ -376,7 +379,7 @@ const ss = StyleSheet.create({
   divider: { height: 1, backgroundColor: BORDER },
 
   modeCard: {
-    backgroundColor: CARD, borderRadius: 16, borderWidth: 1, borderColor: BORDER,
+    backgroundColor: CARD, borderRadius: 12, borderWidth: 1, borderColor: BORDER,
     paddingHorizontal: 16, paddingTop: 14, paddingBottom: 14, marginBottom: 16,
   },
   modeCardLabel: { color: TEXT, fontWeight: '700', fontSize: 15, marginBottom: 10 },
@@ -391,7 +394,7 @@ const ss = StyleSheet.create({
   modeHint: { color: MUTED, fontSize: 12, marginTop: 10, lineHeight: 17 },
 
   timeCard: {
-    backgroundColor: CARD, borderRadius: 16, borderWidth: 1, borderColor: BORDER,
+    backgroundColor: CARD, borderRadius: 12, borderWidth: 1, borderColor: BORDER,
     paddingHorizontal: 16, paddingTop: 14, paddingBottom: 14, marginBottom: 16,
   },
   timeToggleRow: {
@@ -417,6 +420,6 @@ const ss = StyleSheet.create({
   },
   startBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    backgroundColor: ORANGE, borderRadius: 14, paddingVertical: 12,
+    backgroundColor: ORANGE, borderRadius: 10, paddingVertical: 12,
   },
 });

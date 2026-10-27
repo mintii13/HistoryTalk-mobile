@@ -1,6 +1,6 @@
 import { createAudioPlayer, setAudioModeAsync } from 'expo-audio';
 
-const END_CALL_SOUND = require('../../assets/audios/end-call.mp3');
+const END_CALL_SOUND = require('@/assets/audios/end-call.mp3');
 
 let audioModeReady = false;
 

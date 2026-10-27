@@ -1,8 +1,9 @@
 import { Bookmark, Search, Swords, X } from 'lucide-react-native';
 import { useState } from 'react';
-import { FlatList, Modal, Pressable, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import { FlatList, Modal, Pressable, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { TextInput } from '@/components/ui/text-input';
 import { Text } from '@/components/ui/text';
 import { BORDER, CARD, MUTED, ORANGE, ORANGE_TINT_MUTED, SURFACE, TEXT, TEXT2 } from '@/constants/palette';
 import { STUDY_NOTE_COLOR } from '@/features/map/types';
@@ -133,7 +134,7 @@ const s = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)' },
   sheet: {
     position: 'absolute', left: 0, right: 0, bottom: 0, maxHeight: '75%', minHeight: '45%',
-    backgroundColor: CARD, borderTopLeftRadius: 20, borderTopRightRadius: 20, borderWidth: 1, borderColor: BORDER,
+    backgroundColor: CARD, borderTopLeftRadius: 12, borderTopRightRadius: 12, borderWidth: 1, borderColor: BORDER,
   },
   handle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: BORDER, marginTop: 8 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 10 },

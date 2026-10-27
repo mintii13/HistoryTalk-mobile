@@ -1,6 +1,8 @@
 import { Bookmark, LocateFixed, Move, X } from 'lucide-react-native';
 import { useState } from 'react';
-import { ActivityIndicator, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from 'react-native';
+
+import { TextInput } from '@/components/ui/text-input';
 
 import { Text } from '@/components/ui/text';
 import { BG, BORDER, MUTED, ORANGE, SURFACE, TEXT, TEXT2 } from '@/constants/palette';

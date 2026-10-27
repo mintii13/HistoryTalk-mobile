@@ -2,17 +2,13 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Alert } from 'react-native';
 
+import { LOGIN_PROMPTS, useLoginPromptStore } from '@/features/auth/login-prompt';
+import { useAuthStore } from '@/features/auth/store';
 import { getCharacterImageUri, type Character } from '@/features/characters/types';
 
 import { chatApi } from '../api';
-import type { ChatSession } from '../types';
+import { sessionTime } from '../session-time';
 import { useCreateSession } from './use-create-session';
-
-function sessionTime(session: ChatSession) {
-  const value = session.lastMessageAt ?? session.updatedAt ?? session.createdAt;
-  const time = value ? new Date(value).getTime() : 0;
-  return Number.isNaN(time) ? 0 : time;
-}
 
 /**
  * Mở cuộc trò chuyện với 1 nhân vật trong 1 bối cảnh: tiếp tục phiên gần nhất
@@ -22,9 +18,16 @@ export function useStartChat() {
   const router = useRouter();
   const { mutateAsync: createSession } = useCreateSession();
   const [startingId, setStartingId] = useState<string | null>(null);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const showLoginPrompt = useLoginPromptStore((s) => s.show);
 
   async function startChat(character: Character, contextId: string, contextName: string) {
     if (startingId) return;
+    // Khach xem duoc nhan vat nhung phai dang nhap moi chat (giong web).
+    if (!isAuthenticated) {
+      showLoginPrompt(LOGIN_PROMPTS.chat);
+      return;
+    }
     setStartingId(character.id);
     try {
       const existing = await chatApi.getSessions({ characterId: character.id, contextId });

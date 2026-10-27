@@ -23,8 +23,6 @@ const LINE_STYLES: Partial<Record<BattleSymbolType, LineStyle>> = {
   stakes: { width: .25, teeth: { every: 1.1, size: 1.3, base: .38 } },
 };
 
-export const LINE_WEIGHT_MIN = .5;
-export const LINE_WEIGHT_MAX = 2.5;
 
 type Pt = { x: number; y: number };
 const fmt = (n: number) => Math.round(n * 100) / 100;
@@ -142,23 +140,4 @@ export function pointsRect(points: MapPoint[]) {
   const xs = points.map(p => p.x), ys = points.map(p => p.y);
   const x = Math.min(...xs), y = Math.min(...ys);
   return { x, y, w: Math.max(...xs) - x, h: Math.max(...ys) - y };
-}
-
-/** Ramer–Douglas–Peucker: keeps the corners of a freehand stroke, drops the jitter. */
-export function simplify(points: MapPoint[], aspect: number, epsilon = .7): MapPoint[] {
-  if (points.length < 3) return points;
-  const plane = points.map(p => ({ x: p.x, y: p.y / aspect }));
-  const keep = new Set([0, points.length - 1]);
-  const visit = (from: number, to: number) => {
-    const a = plane[from], b = plane[to], len = dist(a, b);
-    let worst = -1, worstDist = epsilon;
-    for (let i = from + 1; i < to; i++) {
-      const p = plane[i];
-      const d = len === 0 ? dist(a, p) : Math.abs((b.x - a.x) * (a.y - p.y) - (a.x - p.x) * (b.y - a.y)) / len;
-      if (d > worstDist) { worst = i; worstDist = d; }
-    }
-    if (worst !== -1) { keep.add(worst); visit(from, worst); visit(worst, to); }
-  };
-  visit(0, points.length - 1);
-  return points.filter((_, i) => keep.has(i));
 }

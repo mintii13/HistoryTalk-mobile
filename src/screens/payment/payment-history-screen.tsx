@@ -1,8 +1,9 @@
-import { useRouter } from 'expo-router';
-import { CheckCircle2, ArrowLeft, Clock, ReceiptText, XCircle } from 'lucide-react-native';
-import { FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { CheckCircle2, Clock, ReceiptText, XCircle } from 'lucide-react-native';
+import { FlatList, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { EmptyState } from '@/components/empty-state';
+import { ScreenHeader } from '@/components/screen-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Text } from '@/components/ui/text';
 import {
@@ -14,10 +15,10 @@ import {
   ORANGE,
   RED,
   TEXT,
-  TEXT2,
 } from '@/constants/palette';
 import { useMyOrders } from '@/features/payment/hooks/use-my-orders';
 import type { OrderStatus, PaymentHistoryItem } from '@/features/payment/types';
+import { formatCurrency, formatDateTime } from '@/lib/format';
 
 const STATUS_CFG: Record<OrderStatus, { label: string; color: string; icon: any }> = {
   PAID: { label: 'Đã thanh toán', color: GREEN, icon: CheckCircle2 },
@@ -26,17 +27,9 @@ const STATUS_CFG: Record<OrderStatus, { label: string; color: string; icon: any 
   EXPIRED: { label: 'Hết hạn', color: RED, icon: XCircle },
 };
 
-function formatCurrency(amount: number) {
-  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(amount);
-}
 
-function formatDate(iso?: string | null) {
-  if (!iso) return '—';
-  return new Date(iso).toLocaleString('vi-VN');
-}
 
 export default function PaymentHistoryScreen() {
-  const router = useRouter();
   const { data, isLoading, refetch, isRefetching } = useMyOrders();
 
   function renderItem({ item }: { item: PaymentHistoryItem }) {
@@ -59,8 +52,8 @@ export default function PaymentHistoryScreen() {
         <Text style={s.amount}>{formatCurrency(item.amount)}</Text>
 
         <View style={s.metaRow}>
-          <Text style={s.metaText}>Tạo: {formatDate(item.createdAt)}</Text>
-          {item.paidAt && <Text style={s.metaText}>Thanh toán: {formatDate(item.paidAt)}</Text>}
+          <Text style={s.metaText}>Tạo: {formatDateTime(item.createdAt)}</Text>
+          {item.paidAt && <Text style={s.metaText}>Thanh toán: {formatDateTime(item.paidAt)}</Text>}
         </View>
       </View>
     );
@@ -68,17 +61,11 @@ export default function PaymentHistoryScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: 'transparent' }} edges={['top']}>
-      <View style={s.headerBar}>
-        <TouchableOpacity onPress={() => router.back()} activeOpacity={0.7} style={s.iconBtn}>
-          <ArrowLeft size={20} color={TEXT} strokeWidth={2} />
-        </TouchableOpacity>
-        <Text style={s.headerTitle}>Lịch sử thanh toán</Text>
-        <View style={{ width: 40 }} />
-      </View>
+      <ScreenHeader title="Lịch sử thanh toán" />
 
       {isLoading ? (
         <View style={{ padding: 20, gap: 12 }}>
-          {[0, 1, 2].map((i) => <Skeleton key={i} style={{ height: 120, borderRadius: 16 }} />)}
+          {[0, 1, 2].map((i) => <Skeleton key={i} style={{ height: 120, borderRadius: 12 }} />)}
         </View>
       ) : (
         <FlatList
@@ -89,10 +76,7 @@ export default function PaymentHistoryScreen() {
           refreshing={isRefetching}
           onRefresh={() => void refetch()}
           ListEmptyComponent={
-            <View style={{ alignItems: 'center', marginTop: 60, gap: 10 }}>
-              <ReceiptText size={36} color={MUTED} />
-              <Text style={{ color: TEXT2, fontSize: 14 }}>Bạn chưa có đơn hàng nào</Text>
-            </View>
+            <EmptyState title="Bạn chưa có đơn hàng nào" />
           }
         />
       )}
@@ -101,19 +85,9 @@ export default function PaymentHistoryScreen() {
 }
 
 const s = StyleSheet.create({
-  headerBar: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingVertical: 12,
-    borderBottomWidth: 1, borderBottomColor: BORDER,
-  },
-  iconBtn: {
-    width: 40, height: 40, borderRadius: 12,
-    alignItems: 'center', justifyContent: 'center', backgroundColor: CARD,
-  },
-  headerTitle: { color: TEXT, fontSize: 17, fontWeight: '700' },
 
   card: {
-    backgroundColor: CARD, borderRadius: 18, borderWidth: 1, borderColor: BORDER, padding: 16,
+    backgroundColor: CARD, borderRadius: 12, borderWidth: 1, borderColor: BORDER, padding: 16,
   },
   orderCode: { color: TEXT, fontSize: 13, fontWeight: '700' },
   statusBadge: {

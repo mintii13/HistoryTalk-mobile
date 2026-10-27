@@ -1,11 +1,13 @@
 import { Image } from 'expo-image';
 import { ChevronRight, MapPin } from 'lucide-react-native';
+import { useState } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import { Badge, BadgeText } from '@/components/ui/badge';
 import { Heading } from '@/components/ui/heading';
 import { Text } from '@/components/ui/text';
 import { BORDER, CARD, FontSize, MUTED, TEXT, TEXT2 } from '@/constants/palette';
+import { AppFonts } from '@/constants/theme';
 import { ERA_COLORS, ERA_LABELS } from '@/features/characters/types';
 import {
   CATEGORY_COLORS,
@@ -14,7 +16,6 @@ import {
   getContextImageUri,
   type HistoricalContext,
 } from '@/features/historical-contexts/types';
-import { ERA_CARD_BG } from './CharacterCard';
 
 // ─── Props ───────────────────────────────────────────────────────────────────
 interface ContextCardProps {
@@ -33,24 +34,44 @@ export function ContextCard({ ctx, onPress, variant = 'full' }: ContextCardProps
   return <FullCard ctx={ctx} onPress={onPress} />;
 }
 
+// ─── Thumbnail ───────────────────────────────────────────────────────────────
+// O giay (khong phai khoi toi) khi bối cảnh chua co anh, anh dang tai hoac tai loi.
+function ContextThumb({ uri, name, color, size }: { uri?: string | null; name: string; color: string; size: number }) {
+  const [failed, setFailed] = useState(false);
+  return (
+    <View style={thumbStyles.paper}>
+      <Text style={[thumbStyles.initial, { color, fontSize: size, lineHeight: Math.round(size * 1.15) }]}>
+        {name.charAt(0).toUpperCase()}
+      </Text>
+      {uri && !failed ? (
+        <Image
+          source={{ uri }}
+          style={StyleSheet.absoluteFill}
+          contentFit="cover"
+          transition={200}
+          onError={() => setFailed(true)}
+        />
+      ) : null}
+    </View>
+  );
+}
+
+const thumbStyles = StyleSheet.create({
+  paper: { flex: 1, alignSelf: 'stretch', alignItems: 'center', justifyContent: 'center', backgroundColor: '#E2DCCF' },
+  initial: { fontFamily: AppFonts.displayBlack, opacity: 0.55 },
+});
+
 // ─── Compact row (Home preview) ──────────────────────────────────────────────
 function CompactRow({ ctx, onPress }: { ctx: HistoricalContext; onPress: () => void }) {
   const ec = ERA_COLORS[ctx.era] ?? ERA_COLORS.ANCIENT;
-  const cardBg = ERA_CARD_BG[ctx.era] ?? '#1C0E06';
   const imgUri = getContextImageUri(ctx);
   const yearTxt = formatContextYear(ctx);
 
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.8} style={rowStyles.container}>
       {/* Thumbnail */}
-      <View style={[rowStyles.thumb, { backgroundColor: cardBg }]}>
-        {imgUri ? (
-          <Image source={{ uri: imgUri }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
-        ) : (
-          <Text style={[rowStyles.thumbInitial, { color: ec.glow }]}>
-            {ctx.name.charAt(0)}
-          </Text>
-        )}
+      <View style={rowStyles.thumb}>
+        <ContextThumb uri={imgUri} name={ctx.name} color={ec.text} size={22} />
       </View>
 
       {/* Info */}
@@ -91,23 +112,14 @@ function CompactRow({ ctx, onPress }: { ctx: HistoricalContext; onPress: () => v
 // ─── Full grid card (/context page) ──────────────────────────────────────────
 function FullCard({ ctx, onPress }: { ctx: HistoricalContext; onPress: () => void }) {
   const ec = ERA_COLORS[ctx.era] ?? ERA_COLORS.ANCIENT;
-  const cardBg = ERA_CARD_BG[ctx.era] ?? '#1C0E06';
   const imgUri = getContextImageUri(ctx);
   const yearText = formatContextYear(ctx);
 
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.8} style={cardStyles.container}>
       {/* Thumbnail */}
-      <View style={[cardStyles.thumb, { backgroundColor: cardBg }]}>
-        {imgUri ? (
-          <Image source={{ uri: imgUri }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
-        ) : (
-          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ fontSize: 36, fontWeight: '900', color: ec.glow, opacity: 0.65 }}>
-              {ctx.name.charAt(0).toUpperCase()}
-            </Text>
-          </View>
-        )}
+      <View style={cardStyles.thumb}>
+        <ContextThumb uri={imgUri} name={ctx.name} color={ec.text} size={40} />
       </View>
 
       {/* Body */}
@@ -155,7 +167,7 @@ const rowStyles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     backgroundColor: CARD,
-    borderRadius: 16,
+    borderRadius: 12,
     padding: 10,
     gap: 8,
     marginBottom: 8,
@@ -172,15 +184,10 @@ const rowStyles = StyleSheet.create({
     justifyContent: 'center',
     flexShrink: 0,
   },
-  thumbInitial: {
-    fontSize: 22,
-    fontWeight: '900',
-    opacity: 0.65,
-  },
   name: {
     color: TEXT,
-    fontSize: 13,
-    fontWeight: '700',
+    fontFamily: AppFonts.title,
+    fontSize: 14,
     lineHeight: 17,
   },
 });
@@ -192,7 +199,7 @@ const cardStyles = StyleSheet.create({
     backgroundColor: CARD,
     borderWidth: 1,
     borderColor: BORDER,
-    borderRadius: 18,
+    borderRadius: 12,
     overflow: 'hidden',
   },
   thumb: {

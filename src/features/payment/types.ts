@@ -46,7 +46,8 @@ export interface PayosReturnResult {
   orderCode: number;
   resolvedStatus: OrderStatus;
   message: string;
-  user: {
+  /** BE hien khong tra (PayOSReturnResponse chi co orderCode/resolvedStatus/message). */
+  user?: {
     uid: string;
     tierId: string | null;
     tierTitle: string | null;

@@ -37,12 +37,13 @@ import {
   ScrollView,
   StyleSheet,
   Switch,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { TextInput, type TextInputRef } from "@/components/ui/text-input";
+import { TokenBoostModal } from "@/components/student/token-boost-modal";
 import { FormattedMarkdown } from "@/components/ui/formatted-markdown";
 import { Text } from "@/components/ui/text";
 import {
@@ -64,6 +65,7 @@ import {
 } from "@/constants/palette";
 import { useMe } from "@/features/auth/hooks/use-me";
 import { useCharacter } from "@/features/characters/hooks/use-character";
+import { todayQuota, useStudentDashboard } from "@/features/classroom/hooks";
 import { getCharacterImageUri } from "@/features/characters/types";
 import { chatApi } from "@/features/chat/api";
 import { useCreateSession } from "@/features/chat/hooks/use-create-session";
@@ -291,9 +293,9 @@ function TypingDots() {
 // 3 cham nhap nhay tuan tu — dung khi mic dang cho xu ly (isCallProcessing),
 // thay cho ActivityIndicator mac dinh (phong theo assets/images/3-dots-scale.svg).
 function ThreeDotsLoader({ color = "#fff", size = 6 }: { color?: string; size?: number }) {
-  const d1 = useRef(new Animated.Value(1)).current;
-  const d2 = useRef(new Animated.Value(1)).current;
-  const d3 = useRef(new Animated.Value(1)).current;
+  const [d1] = useState(() => new Animated.Value(1));
+  const [d2] = useState(() => new Animated.Value(1));
+  const [d3] = useState(() => new Animated.Value(1));
 
   useEffect(() => {
     const dots = [d1, d2, d3];
@@ -332,11 +334,11 @@ function ThreeDotsLoader({ color = "#fff", size = 6 }: { color?: string; size?: 
 // Vach am thanh (equalizer) — dung khi mic dang ghi am nguoi dung noi
 // (isCallListening), thay cho icon Mic tinh (phong theo assets/images/bars.svg).
 function VoiceBars({ color = "#fff", barWidth = 3, height = 18 }: { color?: string; barWidth?: number; height?: number }) {
-  const b1 = useRef(new Animated.Value(0.3)).current;
-  const b2 = useRef(new Animated.Value(0.3)).current;
-  const b3 = useRef(new Animated.Value(0.3)).current;
-  const b4 = useRef(new Animated.Value(0.3)).current;
-  const b5 = useRef(new Animated.Value(0.3)).current;
+  const [b1] = useState(() => new Animated.Value(0.3));
+  const [b2] = useState(() => new Animated.Value(0.3));
+  const [b3] = useState(() => new Animated.Value(0.3));
+  const [b4] = useState(() => new Animated.Value(0.3));
+  const [b5] = useState(() => new Animated.Value(0.3));
 
   useEffect(() => {
     const bars = [b1, b2, b3, b4, b5];
@@ -715,9 +717,14 @@ export default function ChatScreen() {
     useCreateSession();
   const queryClient = useQueryClient();
   const { data: me } = useMe();
-  // Admin chat không bị trừ token nên chỉ hiện số dư cho CUSTOMER
+  // Customer dùng ví token cá nhân; học sinh dùng hạn mức token AI mỗi ngày do trường cấp.
   const isCustomer = me?.role === "CUSTOMER";
-  const tokenBalance = me?.token ?? null;
+  const isStudent = me?.role === "SCHOOL_STUDENT";
+  const studentDashboard = useStudentDashboard();
+  const studentQuota = todayQuota(studentDashboard.data);
+  const tokenBalance = isStudent ? (studentQuota?.remaining ?? null) : (me?.token ?? null);
+  const showTokens = isCustomer || isStudent;
+  const [boostOpen, setBoostOpen] = useState(false);
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [timelineItems, setTimelineItems] = useState<ChatTimelineItem[]>([]);
@@ -736,9 +743,9 @@ export default function ChatScreen() {
   const [callElapsed, setCallElapsed] = useState(0);
 
   const listRef = useRef<FlatList<ChatTimelineItem>>(null);
-  const inputRef = useRef<TextInput>(null);
-  const micScale = useRef(new Animated.Value(1)).current;
-  const aiWarningOpacity = useRef(new Animated.Value(sessionId ? 1 : 0)).current;
+  const inputRef = useRef<TextInputRef>(null);
+  const [micScale] = useState(() => new Animated.Value(1));
+  const [aiWarningOpacity] = useState(() => new Animated.Value(sessionId ? 1 : 0));
   const callTranscriptRef = useRef("");
   // Timeout an toan: neu STT khong tu ket thuc (vd im lang keo dai, khong co
   // mic that tren emulator) thi tu dong dung nghe va gui sau LISTEN_TIMEOUT_MS.
@@ -939,7 +946,17 @@ export default function ChatScreen() {
           ),
         );
         const message = e?.message ?? "Không thể gửi tin nhắn.";
-        if (message.toLowerCase().includes("token")) {
+        const outOfTokens = e?.code === "AI_QUOTA_EXCEEDED" || message.toLowerCase().includes("token");
+        if (outOfTokens && isStudent) {
+          Alert.alert(
+            "Hết hạn mức token AI hôm nay",
+            "Bạn đã dùng hết hạn mức hôm nay hoặc quỹ token của trường đã hết. Hạn mức làm mới lúc 00:00; quiz, tư liệu và bài tập vẫn dùng bình thường.",
+            [
+              { text: "Để sau", style: "cancel", onPress: () => setInput(content) },
+              { text: "Xin thêm token", onPress: () => { setInput(content); setBoostOpen(true); } },
+            ],
+          );
+        } else if (outOfTokens) {
           Alert.alert("Hết token", message, [
             { text: "Để sau", style: "cancel" },
             { text: "Nạp thêm", onPress: () => router.push("/payment") },
@@ -955,9 +972,10 @@ export default function ChatScreen() {
         setIsTyping(false);
         // Đồng bộ lại số token còn lại hiển thị trên header
         void queryClient.invalidateQueries({ queryKey: ["me"] });
+        if (isStudent) void queryClient.invalidateQueries({ queryKey: ["student", "dashboard"] });
       }
     },
-    [input, isTyping, router, sending, sendMessage, sessionId, autoSpeak, queryClient],
+    [input, isTyping, router, sending, sendMessage, sessionId, autoSpeak, queryClient, isStudent],
   );
 
   function handleStartCall() {
@@ -1366,8 +1384,8 @@ export default function ChatScreen() {
             ) : null}
           </View>
 
-          {isCustomer && tokenBalance != null ? (
-            <View style={s.tokenPill} accessibilityLabel={`Còn ${tokenBalance} token`}>
+          {showTokens && tokenBalance != null ? (
+            <View style={s.tokenPill} accessibilityLabel={`Còn ${tokenBalance} token${isStudent ? " hôm nay" : ""}`}>
               <Coins size={12} color={ORANGE} strokeWidth={2} />
               <Text style={s.tokenPillText}>{formatTokens(tokenBalance)}</Text>
             </View>
@@ -1644,19 +1662,19 @@ export default function ChatScreen() {
           </View>
         ) : null}
 
-        {isCustomer && tokenBalance != null && tokenBalance <= LOW_TOKEN_THRESHOLD ? (
+        {showTokens && tokenBalance != null && tokenBalance <= LOW_TOKEN_THRESHOLD ? (
           <View style={s.tokenBanner}>
             <Text style={s.tokenBannerText} numberOfLines={1}>
               {tokenBalance <= 0
-                ? "Bạn đã hết token chat."
+                ? isStudent ? "Đã hết hạn mức token hôm nay." : "Bạn đã hết token chat."
                 : `Sắp hết token (còn ${formatTokens(tokenBalance)}).`}
             </Text>
             <TouchableOpacity
-              onPress={() => router.push("/payment")}
+              onPress={() => (isStudent ? setBoostOpen(true) : router.push("/payment"))}
               activeOpacity={0.8}
               style={s.tokenBannerBtn}
             >
-              <Text style={s.tokenBannerBtnText}>Nạp thêm</Text>
+              <Text style={s.tokenBannerBtnText}>{isStudent ? "Xin thêm" : "Nạp thêm"}</Text>
             </TouchableOpacity>
           </View>
         ) : null}
@@ -1690,6 +1708,7 @@ export default function ChatScreen() {
         <View style={{ height: Platform.OS === "ios" ? insets.bottom : 8 }} />
       </KeyboardAvoidingView>
 
+      {isStudent ? <TokenBoostModal visible={boostOpen} onClose={() => setBoostOpen(false)} /> : null}
       <DocumentCitationModal
         visible={!!citationQuote}
         onClose={() => setCitationQuote(null)}

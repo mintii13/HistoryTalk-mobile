@@ -10,6 +10,7 @@ export function useRateQuiz(quizId: string) {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['quiz', quizId] });
       void queryClient.invalidateQueries({ queryKey: ['quizzes'] });
+      void queryClient.invalidateQueries({ queryKey: ['quiz-my-rating', quizId] });
     },
   });
 }

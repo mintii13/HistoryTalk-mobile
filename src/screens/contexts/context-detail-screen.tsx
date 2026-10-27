@@ -3,7 +3,7 @@ import { useEventListener } from "expo";
 import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { VideoView, useVideoPlayer } from "expo-video";
-import { ArrowLeft, FileText, Play, Trophy, X } from "lucide-react-native";
+import { ArrowLeft, ChevronRight, FileText, Map as MapIcon, Play, Trophy, X } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import {
   Linking,
@@ -21,7 +21,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
 import { VStack } from "@/components/ui/vstack";
 import {
-  BG,
+  BORDER,
   CARD,
   MUTED,
   ORANGE,
@@ -31,20 +31,16 @@ import {
 } from "@/constants/palette";
 import { BrandColors, Colors } from "@/constants/theme";
 import { useCharactersByContext } from "@/features/characters/hooks/use-characters-by-context";
-import { ERA_COLORS, getCharacterImageUri, type Character } from "@/features/characters/types";
+import { ERA_COLORS, ERA_HERO_BG, getCharacterImageUri, type Character } from "@/features/characters/types";
 import { DocumentCitationModal } from "@/features/documents/DocumentCitationModal";
 import { usePublicContextDocuments } from "@/features/documents/hooks";
 import type { RagDocument } from "@/features/documents/types";
 import { recordStudyActivity } from "@/features/gamification/study-check-in";
 import { useHistoricalContext } from "@/features/historical-contexts/hooks/use-historical-context";
 import { formatContextYear, getContextImageUri } from "@/features/historical-contexts/types";
+import { battleYear } from "@/features/map/hooks/use-map-battles";
+import { useMapPins } from "@/features/map/hooks/use-map-pins";
 
-const ERA_HERO_BG: Record<string, string> = {
-  ANCIENT: "#2C1810",
-  MEDIEVAL: "#1A0E38",
-  MODERN: "#0A2420",
-  CONTEMPORARY: "#0D1B2A",
-};
 
 function CharacterChip({
   char,
@@ -342,6 +338,9 @@ export default function ContextDetailScreen() {
   } = useHistoricalContext(resolvedId ?? "");
   const { data: relatedCharacters = [], refetch: refetchCharacters } = useCharactersByContext(resolvedId ?? "");
   const { data: documents = [] } = usePublicContextDocuments(resolvedId ?? "");
+  // Chi moi "Xem trên bản đồ" khi tran da co ghim cua Content Admin (tranh mo ban do trong).
+  const { data: pins = [] } = useMapPins(ctx ? ctx.id : null, ctx ? battleYear(ctx) : 0);
+  const onMap = pins.some((p) => p.pinOwnerType === "ADMIN");
   const [skippedIntroId, setSkippedIntroId] = useState<string | null>(null);
   const [manualVideoId, setManualVideoId] = useState<string | null>(null);
   const [openDocumentId, setOpenDocumentId] = useState<string | null>(null);
@@ -506,6 +505,22 @@ export default function ContextDetailScreen() {
             <View style={{ marginBottom: 28 }} />
           )}
 
+          {onMap ? (
+            <TouchableOpacity
+              onPress={() => router.push({ pathname: "/map", params: { battle: ctx.id } })}
+              activeOpacity={0.8}
+              style={mapLinkStyles.row}
+              accessibilityRole="link"
+            >
+              <MapIcon size={18} color={ORANGE} strokeWidth={1.8} />
+              <View style={{ flex: 1 }}>
+                <Text style={mapLinkStyles.title}>Xem trên bản đồ</Text>
+                <Text style={mapLinkStyles.sub}>Vị trí trận đánh và ghi chú của bạn</Text>
+              </View>
+              <ChevronRight size={18} color={MUTED} />
+            </TouchableOpacity>
+          ) : null}
+
           {/* Video replay */}
           {videoUri ? (
             <VideoReplayCard
@@ -654,7 +669,7 @@ const documentStyles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    borderRadius: 14,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: ORANGE_BORDER,
     backgroundColor: SURFACE,
@@ -683,7 +698,7 @@ const quizStyles = StyleSheet.create({
     alignItems: "center",
     gap: 14,
     backgroundColor: BrandColors.primaryMuted,
-    borderRadius: 18,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: BrandColors.primaryFocus,
     padding: 16,
@@ -693,7 +708,7 @@ const quizStyles = StyleSheet.create({
   bannerIconWrap: {
     width: 50,
     height: 50,
-    borderRadius: 14,
+    borderRadius: 10,
     backgroundColor: BrandColors.primarySubtle,
     alignItems: "center",
     justifyContent: "center",
@@ -768,7 +783,7 @@ const introStyles = StyleSheet.create({
     width: "100%",
     maxWidth: 320,
     height: 52,
-    borderRadius: 16,
+    borderRadius: 12,
     backgroundColor: BrandColors.primary,
     alignItems: "center",
     justifyContent: "center",
@@ -793,7 +808,7 @@ const videoCardStyles = StyleSheet.create({
     alignItems: "center",
     gap: 14,
     marginBottom: 28,
-    borderRadius: 18,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: BrandColors.primaryBorder,
     backgroundColor: BrandColors.primaryMuted,
@@ -803,7 +818,7 @@ const videoCardStyles = StyleSheet.create({
   thumb: {
     width: 92,
     height: 62,
-    borderRadius: 14,
+    borderRadius: 10,
     overflow: "hidden",
     backgroundColor: Colors.dark.backgroundElement,
     alignItems: "center",
@@ -829,4 +844,22 @@ const videoCardStyles = StyleSheet.create({
     lineHeight: 20,
     marginTop: 4,
   },
+});
+
+const mapLinkStyles = StyleSheet.create({
+  row: {
+    width: "100%",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginBottom: 20,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: BORDER,
+    backgroundColor: CARD,
+  },
+  title: { color: TEXT, fontSize: 15, fontWeight: "600" },
+  sub: { marginTop: 2, color: MUTED, fontSize: 12 },
 });

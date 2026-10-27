@@ -219,8 +219,8 @@ const s = StyleSheet.create({
   },
   sheet: {
     maxHeight: "82%",
-    borderTopLeftRadius: 22,
-    borderTopRightRadius: 22,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
     backgroundColor: CARD,
     overflow: "hidden",
   },

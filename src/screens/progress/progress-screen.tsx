@@ -1,12 +1,13 @@
 import { useRouter } from 'expo-router';
-import { ArrowLeft, ChevronRight, Coins, Sparkles, Star, Trophy } from 'lucide-react-native';
+import { ChevronRight, Coins, Sparkles, Star, Trophy } from 'lucide-react-native';
 import { useState, type ReactNode } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { ScreenHeader } from '@/components/screen-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Text } from '@/components/ui/text';
-import { AMBER, BORDER, CARD, GREEN, MUTED, ORANGE, RED, SURFACE, TEXT, TEXT2 } from '@/constants/palette';
+import { AMBER, BORDER, CARD, GREEN, MEN_LAM, MUTED, ORANGE, RED, SURFACE, TEXT, TEXT2 } from '@/constants/palette';
 import { useAuthStore } from '@/features/auth/store';
 import { ERA_LABELS, type CharacterEra } from '@/features/characters/types';
 import { useCustomerDashboard } from '@/features/dashboard/hooks/use-customer-dashboard';
@@ -20,7 +21,6 @@ import { useQuizResults } from '@/features/quiz/hooks/use-quiz-results';
  */
 
 const ERA_ORDER = ['ANCIENT', 'MEDIEVAL', 'MODERN', 'CONTEMPORARY'];
-const MEN_LAM = '#2F5D8A';
 
 const PAYMENT_STATUS: Record<string, { label: string; color: string }> = {
   PAID: { label: 'Đã thanh toán', color: GREEN },
@@ -110,22 +110,14 @@ export default function ProgressScreen() {
     }
   }
 
-  const header = (
-    <View style={s.headerBar}>
-      <TouchableOpacity onPress={() => router.back()} activeOpacity={0.7} style={s.iconBtn}>
-        <ArrowLeft size={20} color={TEXT} strokeWidth={2} />
-      </TouchableOpacity>
-      <Text style={s.headerTitle}>Tiến độ học tập</Text>
-      <View style={{ width: 40 }} />
-    </View>
-  );
+  const header = <ScreenHeader title="Tiến độ học tập" />;
 
   if (isLoading) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: 'transparent' }} edges={['top']}>
         {header}
         <View style={{ padding: 20, gap: 12 }}>
-          {[0, 1, 2, 3].map((i) => <Skeleton key={i} style={{ height: 96, borderRadius: 16 }} />)}
+          {[0, 1, 2, 3].map((i) => <Skeleton key={i} style={{ height: 96, borderRadius: 12 }} />)}
         </View>
       </SafeAreaView>
     );
@@ -326,20 +318,10 @@ export default function ProgressScreen() {
 }
 
 const s = StyleSheet.create({
-  headerBar: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingVertical: 12,
-    borderBottomWidth: 1, borderBottomColor: BORDER,
-  },
-  iconBtn: {
-    width: 40, height: 40, borderRadius: 12,
-    alignItems: 'center', justifyContent: 'center', backgroundColor: CARD,
-  },
-  headerTitle: { color: TEXT, fontSize: 17, fontWeight: '700' },
 
   tile: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: CARD, borderRadius: 16, borderWidth: 1, borderColor: BORDER, padding: 14,
+    backgroundColor: CARD, borderRadius: 12, borderWidth: 1, borderColor: BORDER, padding: 14,
   },
   tileIcon: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   tileLabel: { color: MUTED, fontSize: 12, fontWeight: '700' },
@@ -347,7 +329,7 @@ const s = StyleSheet.create({
   tileSub: { color: MUTED, fontSize: 12, marginTop: 2, textTransform: 'capitalize' },
 
   section: {
-    backgroundColor: CARD, borderRadius: 18, borderWidth: 1, borderColor: BORDER, padding: 16,
+    backgroundColor: CARD, borderRadius: 12, borderWidth: 1, borderColor: BORDER, padding: 16,
   },
   sectionTitle: { color: TEXT, fontSize: 15, fontWeight: '800' },
   sectionDesc: { color: MUTED, fontSize: 12, marginTop: 2 },

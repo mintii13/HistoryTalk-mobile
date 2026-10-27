@@ -2,7 +2,7 @@ import { useRouter } from 'expo-router';
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 import {
-  ArrowLeft, BadgeCheck, Check, Clock, Crown, History, ShieldCheck, Sparkles, XCircle,
+  BadgeCheck, Check, Clock, Crown, History, ShieldCheck, Sparkles, XCircle,
 } from 'lucide-react-native';
 import { useState } from 'react';
 import {
@@ -10,11 +10,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { HeaderIconButton, ScreenHeader } from '@/components/screen-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Text } from '@/components/ui/text';
 import {
   AMBER,
-  BG,
   BORDER,
   CARD,
   GREEN,
@@ -29,19 +29,19 @@ import {
   TEXT2,
 } from '@/constants/palette';
 import { useMe } from '@/features/auth/hooks/use-me';
+import { LOGIN_PROMPTS, useLoginPromptStore } from '@/features/auth/login-prompt';
+import { useAuthStore } from '@/features/auth/store';
 import { useCreateOrder } from '@/features/payment/hooks/use-create-order';
 import { useMyOrders } from '@/features/payment/hooks/use-my-orders';
 import { useNotifyPayosReturn } from '@/features/payment/hooks/use-notify-payos-return';
 import { useTiers } from '@/features/payment/hooks/use-tiers';
 import type { OrderStatus, Tier } from '@/features/payment/types';
+import { formatCurrency } from '@/lib/format';
 
 // Phai khop scheme "mobilehistorytalk" dang ky trong app.json — BE dung gia
 // tri nay lam returnUrl/cancelUrl khi tao PayOS checkout link (platform: 'mobile').
 const PAYOS_REDIRECT_URL = Linking.createURL('payment/result');
 
-function formatCurrency(amount: number) {
-  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(amount);
-}
 
 function tierFeatureSummary(title: string): string {
   const v = title.toLowerCase();
@@ -59,6 +59,8 @@ const RESULT_LABEL: Record<OrderStatus, { label: string; color: string; icon: an
 
 export default function PaymentScreen() {
   const router = useRouter();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const showLoginPrompt = useLoginPromptStore((s) => s.show);
   const { data: profile, refetch: refetchMe } = useMe();
   const { data: tiers, isLoading, refetch: refetchTiers } = useTiers();
   const createOrder = useCreateOrder();
@@ -85,6 +87,10 @@ export default function PaymentScreen() {
   // chi resolve khi nguoi dung tu tay dong trinh duyet.
   async function handleCheckout(tier: Tier) {
     if (tier.amount <= 0) return;
+    if (!isAuthenticated) {
+      showLoginPrompt(LOGIN_PROMPTS.generic);
+      return;
+    }
     setResultStatus(null);
     setLoadingTierId(tier.tierId);
     try {
@@ -127,15 +133,14 @@ export default function PaymentScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: 'transparent' }} edges={['top']}>
-      <View style={s.headerBar}>
-        <TouchableOpacity onPress={() => router.back()} activeOpacity={0.7} style={s.iconBtn}>
-          <ArrowLeft size={20} color={TEXT} strokeWidth={2} />
-        </TouchableOpacity>
-        <Text style={s.headerTitle}>Nâng cấp gói</Text>
-        <TouchableOpacity onPress={() => router.push('/payment/history')} activeOpacity={0.7} style={s.iconBtn}>
-          <History size={19} color={TEXT} strokeWidth={2} />
-        </TouchableOpacity>
-      </View>
+      <ScreenHeader
+        title="Nâng cấp gói"
+        right={
+          <HeaderIconButton label="Lịch sử thanh toán" onPress={() => router.push('/payment/history')}>
+            <History size={19} color={TEXT} strokeWidth={2} />
+          </HeaderIconButton>
+        }
+      />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -164,7 +169,7 @@ export default function PaymentScreen() {
 
         {isLoading && (
           <View style={{ paddingHorizontal: 20, gap: 14 }}>
-            {[0, 1, 2].map((i) => <Skeleton key={i} style={{ height: 180, borderRadius: 20 }} />)}
+            {[0, 1, 2].map((i) => <Skeleton key={i} style={{ height: 180, borderRadius: 12 }} />)}
           </View>
         )}
 
@@ -240,25 +245,15 @@ export default function PaymentScreen() {
 }
 
 const s = StyleSheet.create({
-  headerBar: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingVertical: 12,
-    borderBottomWidth: 1, borderBottomColor: BORDER,
-  },
-  iconBtn: {
-    width: 40, height: 40, borderRadius: 12,
-    alignItems: 'center', justifyContent: 'center', backgroundColor: CARD,
-  },
-  headerTitle: { color: TEXT, fontSize: 17, fontWeight: '700' },
 
   resultBanner: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
     marginHorizontal: 20, marginTop: 16, padding: 14,
-    borderRadius: 14, borderWidth: 1, backgroundColor: CARD,
+    borderRadius: 10, borderWidth: 1, backgroundColor: CARD,
   },
 
   tierCard: {
-    backgroundColor: CARD, borderRadius: 20, borderWidth: 1, borderColor: BORDER, padding: 18,
+    backgroundColor: CARD, borderRadius: 12, borderWidth: 1, borderColor: BORDER, padding: 18,
   },
   tierCardFeatured: { borderColor: ORANGE_BORDER_STRONG },
   tierHead: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
@@ -271,7 +266,7 @@ const s = StyleSheet.create({
   featureText: { color: TEXT2, fontSize: 13 },
 
   actionBtn: {
-    marginTop: 18, height: 46, borderRadius: 14,
+    marginTop: 18, height: 46, borderRadius: 10,
     alignItems: 'center', justifyContent: 'center',
   },
   actionBtnDefault: { backgroundColor: ORANGE_TINT_MUTED, borderWidth: 1, borderColor: ORANGE_BORDER },

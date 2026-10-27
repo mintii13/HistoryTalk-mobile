@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, Bookmark, ChevronDown, ChevronUp, List, X } from 'lucide-react-native';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
@@ -48,7 +48,14 @@ export default function MapScreen() {
   const canTakeNotes = !!role && STUDY_NOTE_ROLES.includes(role);
   const mapRef = useRef<HistoricalLeafletMapHandle>(null);
 
-  const [selectedBattleId, setSelectedBattleId] = useState<string | null>(null);
+  // ?battle=<contextId>: mo tu trang chi tiet boi canh ("Xem trên bản đồ") thi chon san tran do.
+  const { battle } = useLocalSearchParams<{ battle?: string }>();
+  const [selectedBattleId, setSelectedBattleId] = useState<string | null>(battle ?? null);
+  const [battleParam, setBattleParam] = useState(battle);
+  if (battle !== battleParam) {
+    setBattleParam(battle);
+    if (battle) setSelectedBattleId(battle);
+  }
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
   const [noteEditor, setNoteEditor] = useState<NoteEditor | null>(null);
   const [pendingDelete, setPendingDelete] = useState<MapPin | null>(null);
@@ -364,13 +371,13 @@ const s = StyleSheet.create({
   pillText: { color: '#fff', fontSize: 12, fontWeight: '800' },
   errorCard: {
     position: 'absolute', top: '40%', alignSelf: 'center', alignItems: 'center', gap: 8,
-    backgroundColor: CARD, borderRadius: 14, borderWidth: 1, borderColor: BORDER, padding: 16,
+    backgroundColor: CARD, borderRadius: 10, borderWidth: 1, borderColor: BORDER, padding: 16,
   },
   errorText: { color: TEXT, fontSize: 14, fontWeight: '700' },
   retry: { color: STUDY_NOTE_COLOR, fontSize: 13, fontWeight: '800' },
   panel: {
     position: 'absolute', left: 0, right: 0, bottom: 0, maxHeight: '62%',
-    backgroundColor: CARD, borderTopLeftRadius: 20, borderTopRightRadius: 20, borderWidth: 1, borderColor: BORDER,
+    backgroundColor: CARD, borderTopLeftRadius: 12, borderTopRightRadius: 12, borderWidth: 1, borderColor: BORDER,
   },
   panelCollapsed: { maxHeight: 56 },
   panelBar: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 8 },

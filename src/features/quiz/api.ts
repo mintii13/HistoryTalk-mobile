@@ -1,14 +1,29 @@
 import { apiClient } from '@/lib/api-client';
 
+import { parseAnswerData, parseQuestionData, parseQuestionType } from './question-data';
+
 import type {
   MyResultsPage,
   Quiz,
+  QuizQuestion,
   QuizResult,
   QuizResultDetail,
+  QuizResultDetailQuestion,
   QuizSummary,
-  QuizSession,
   SubmitAnswers,
 } from './types';
+
+type RawQuestion = Record<string, any>;
+
+function toQuestion(raw: RawQuestion): QuizQuestion {
+  return {
+    questionId: String(raw.questionId),
+    content: raw.content ?? '',
+    questionType: parseQuestionType(raw.questionType),
+    questionData: parseQuestionData(raw),
+    explanation: raw.explanation ?? undefined,
+  };
+}
 
 export const quizApi = {
   list: (search?: string) => {
@@ -24,13 +39,17 @@ export const quizApi = {
     // from omitting the param (which lets the backend fall back to the
     // quiz's own default duration).
     const qs = limitedTime !== undefined ? `?limitedTime=${limitedTime}` : '';
-    const session = await apiClient<QuizSession>(`/quizzes/${quizId}/start${qs}`, {
-      method: 'POST',
-      body: JSON.stringify({}),
-    });
+    const session = await apiClient<{ sessionId: string; quizId: string; title: string; questions?: RawQuestion[] }>(
+      `/quizzes/${quizId}/start${qs}`,
+      { method: 'POST', body: JSON.stringify({}) },
+    );
+    // BE tra cau hoi theo dung thu tu va khong kem limitedTime (luu phia server).
     return {
-      ...session,
-      questions: [...session.questions].sort((a, b) => a.orderIndex - b.orderIndex),
+      sessionId: session.sessionId,
+      quizId: session.quizId ?? quizId,
+      title: session.title,
+      limitedTime: limitedTime ?? 0,
+      questions: (session.questions ?? []).map(toQuestion),
     };
   },
 
@@ -47,8 +66,16 @@ export const quizApi = {
     );
   },
 
-  getMyResultBySession: (sessionId: string) =>
-    apiClient<QuizResultDetail>(`/quizzes/results/me/${sessionId}`),
+  getMyResultBySession: async (sessionId: string): Promise<QuizResultDetail> => {
+    const raw = await apiClient<Omit<QuizResultDetail, 'questions'> & { questions?: RawQuestion[] }>(`/quizzes/results/me/${sessionId}`);
+    const questions: QuizResultDetailQuestion[] = (raw.questions ?? []).map((q) => ({
+      ...toQuestion(q),
+      submittedAnswer: q.submittedAnswer && typeof q.submittedAnswer === 'object' ? parseAnswerData(q.submittedAnswer) : null,
+      // Jackson serialize `boolean isCorrect` thanh `correct`.
+      correct: Boolean(q.isCorrect ?? q.correct),
+    }));
+    return { ...raw, questions };
+  },
 
   rate: (quizId: string, value: number) =>
     apiClient<{ rating: number; ratingCount: number; myRating: number }>(`/quizzes/${quizId}/rating`, {
@@ -60,7 +87,7 @@ export const quizApi = {
     apiClient<{ myRating: number | null }>(`/quizzes/${quizId}/rating/me`),
 
   reportQuestion: (questionId: string, reason?: string) =>
-    apiClient<{}>(`/quizzes/questions/${questionId}/report`, {
+    apiClient<null>(`/quizzes/questions/${questionId}/report`, {
       method: 'POST',
       body: JSON.stringify({ reason }),
     }),

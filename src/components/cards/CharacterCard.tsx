@@ -1,6 +1,8 @@
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Dimensions, StyleSheet, TouchableOpacity, View } from 'react-native';
+
+import { RawText as Text } from '@/components/ui/text';
 
 import { Badge, BadgeText } from '@/components/ui/badge';
 import {
@@ -198,7 +200,7 @@ const smStyles = StyleSheet.create({
   card: {
     width: SM_WIDTH,
     height: SM_HEIGHT,
-    borderRadius: 16,
+    borderRadius: 12,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.06)',
@@ -219,8 +221,8 @@ const smStyles = StyleSheet.create({
     right: 0,
     bottom: 0,
     height: 70,
-    borderBottomLeftRadius: 15,
-    borderBottomRightRadius: 15,
+    borderBottomLeftRadius: 12,
+    borderBottomRightRadius: 12,
   },
   textWrap: {
     position: 'absolute',
@@ -228,8 +230,8 @@ const smStyles = StyleSheet.create({
     left: 0,
     right: 0,
     padding: 8,
-    borderBottomLeftRadius: 15,
-    borderBottomRightRadius: 15,
+    borderBottomLeftRadius: 12,
+    borderBottomRightRadius: 12,
   },
   name: {
     color: '#fff',
@@ -245,7 +247,7 @@ const smStyles = StyleSheet.create({
 // ─── Styles — large ───────────────────────────────────────────────────────────
 const lgStyles = StyleSheet.create({
   card: {
-    borderRadius: 20,
+    borderRadius: 12,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.07)',
@@ -285,8 +287,8 @@ const lgStyles = StyleSheet.create({
     right: 0,
     bottom: 0,
     height: Math.round(CHAR_CARD_LG_HEIGHT * 0.58),
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
+    borderBottomLeftRadius: 12,
+    borderBottomRightRadius: 12,
   },
   textWrap: {
     position: 'absolute',

@@ -1,3 +1,5 @@
+import type { AnswerData, QuestionData, QuestionType } from './question-data';
+
 export type QuizLevel = 'EASY' | 'MEDIUM' | 'HARD';
 export type QuizEra = 'ALL' | 'ANCIENT' | 'MEDIEVAL' | 'MODERN' | 'CONTEMPORARY';
 export type QuizGrade = 10 | 11 | 12;
@@ -11,6 +13,8 @@ export interface QuizSummary {
   rating?: number;
   contextTitle?: string;
   contextId?: string;
+  /** Co trong danh sach khi BE tra ve; the quiz hien "x phut" neu co. */
+  durationSeconds?: number;
 }
 
 export interface Quiz extends QuizSummary {
@@ -30,9 +34,9 @@ export interface Quiz extends QuizSummary {
 export interface QuizQuestion {
   questionId: string;
   content: string;
-  options: string[];
-  correctAnswer: number;
-  orderIndex: number;
+  questionType: QuestionType;
+  /** Learner nhan ban da luoc dap an khi bat dau; man ket qua nhan ban day du. */
+  questionData: QuestionData;
   explanation?: string;
 }
 
@@ -40,14 +44,14 @@ export interface QuizSession {
   sessionId: string;
   quizId: string;
   title: string;
+  /** BE khong tra limitedTime khi start — app tu gan theo gia tri da yeu cau (0 = khong gioi han). */
   limitedTime: number;
-  durationSeconds: number;
   questions: QuizQuestion[];
 }
 
 export interface SubmitAnswers {
   sessionId: string;
-  answers: { questionId: string; selectedAnswer: number }[];
+  answers: { questionId: string; answerData: AnswerData }[];
 }
 
 export interface QuizResult {
@@ -82,7 +86,7 @@ export interface MyResultsPage {
 }
 
 export interface QuizResultDetailQuestion extends QuizQuestion {
-  selectedAnswer: number;
+  submittedAnswer: AnswerData | null;
   correct: boolean;
 }
 

@@ -1,58 +1,84 @@
-import { useQuery } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { CheckCircle2, ChevronRight, Flag, MessageCircle, Minus, RotateCcw, Star, TrendingDown, TrendingUp, XCircle, Zap } from 'lucide-react-native';
-import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Animated, Pressable, RefreshControl, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, Animated, Pressable, RefreshControl, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { Mascot, type MascotMood } from '@/components/mascot/mascot';
+import { TextInput } from '@/components/ui/text-input';
+import { QuestionInput } from '@/components/quiz/question-input';
 import { Text } from '@/components/ui/text';
 import { BG, BORDER, CARD, GREEN, MUTED, ORANGE, ORANGE_BORDER_STRONG, ORANGE_TINT, ORANGE_TINT_FAINT, RED, SURFACE, TEXT, TEXT2, TEXT_TINT_FAINT } from '@/constants/palette';
 import { useCharactersByContext } from '@/features/characters/hooks/use-characters-by-context';
 import { getCharacterImageUri } from '@/features/characters/types';
-import { quizApi } from '@/features/quiz/api';
+import { useMyRating } from '@/features/quiz/hooks/use-my-rating';
+import { useQuizResultDetail } from '@/features/quiz/hooks/use-quiz-result-detail';
 import { useRateQuiz } from '@/features/quiz/hooks/use-rate-quiz';
 import { useReportQuestion } from '@/features/quiz/hooks/use-report-question';
 import { useStartQuiz } from '@/features/quiz/hooks/use-start-quiz';
+import {
+  describeCorrectAnswer,
+  gradeAnswer,
+  hasAnswerKey,
+  isAnswerComplete,
+  type AnswerData,
+} from '@/features/quiz/question-data';
 import { useQuizStore } from '@/features/quiz/store';
-import type { PreviousAttempt } from '@/features/quiz/types';
+import type { PreviousAttempt, QuizQuestion } from '@/features/quiz/types';
 
-const OPTION_LETTERS = ['A', 'B', 'C', 'D'];
+/** Dung/sai cua 1 cau: uu tien ket qua BE cham (`correct`), roi moi tu cham neu co dap an. */
+function questionCorrect(q: QuizQuestion & { correct?: boolean }, answer: AnswerData | undefined) {
+  if (typeof q.correct === 'boolean') return q.correct;
+  return hasAnswerKey(q) && gradeAnswer(q, answer);
+}
+
+// Cung 4 muc voi QuizResultPage ben web, kem tam trang mascot va 1 cau dong vien.
+function resultTier(percentage: number): { label: string; color: string; mood: MascotMood; line: string } {
+  if (percentage >= 90) return { label: 'Xuất sắc', color: ORANGE, mood: 'happy', line: 'Quá đỉnh! Bạn nắm rất chắc giai đoạn này.' };
+  if (percentage >= 70) return { label: 'Khá tốt', color: GREEN, mood: 'happy', line: 'Làm tốt lắm! Chỉ còn vài chỗ cần xem lại.' };
+  if (percentage >= 50) return { label: 'Ổn định', color: TEXT, mood: 'idle', line: 'Nền tảng ổn rồi, ôn thêm chút là lên hạng.' };
+  return { label: 'Cần ôn lại', color: RED, mood: 'sad', line: 'Không sao, lật đồng hồ và thử lại nhé!' };
+}
 
 function ScoreRing({ percentage }: { percentage: number }) {
-  const scaleAnim = useRef(new Animated.Value(0.8)).current;
-  const opacityAnim = useRef(new Animated.Value(0)).current;
+  const [scaleAnim] = useState(() => new Animated.Value(0.8));
+  const [opacityAnim] = useState(() => new Animated.Value(0));
 
-  const color = percentage >= 70 ? GREEN : percentage >= 50 ? ORANGE : RED;
-  const label = percentage >= 80 ? 'Xuất sắc' : percentage >= 60 ? 'Tốt' : percentage >= 40 ? 'Khá' : 'Cần cố gắng';
+  const tier = resultTier(percentage);
+  const color = tier.color;
 
   useEffect(() => {
     Animated.sequence([
       Animated.timing(opacityAnim, { toValue: 1, duration: 300, useNativeDriver: true }),
       Animated.spring(scaleAnim, { toValue: 1, friction: 5, tension: 40, useNativeDriver: true }),
     ]).start();
-  }, []);
+  }, [opacityAnim, scaleAnim]);
 
   return (
     <Animated.View style={{ alignItems: 'center', marginBottom: 24, opacity: opacityAnim, transform: [{ scale: scaleAnim }] }}>
-      <View style={[ss.ring, { borderColor: color, shadowColor: color }]}>
-        <Text style={[ss.ringScore, { color }]}>{percentage}%</Text>
-        <Text style={ss.ringLabel}>{label}</Text>
+      <View style={ss.ringRow}>
+        <Mascot mood={tier.mood} size={84} label={tier.label} />
+        <View style={[ss.ring, { borderColor: color, shadowColor: color }]}>
+          <Text style={[ss.ringScore, { color }]}>{percentage}%</Text>
+          <Text style={ss.ringLabel}>{tier.label}</Text>
+        </View>
       </View>
+      <Text style={ss.tierLine}>{tier.line}</Text>
     </Animated.View>
   );
 }
 
 function ScoreStats({ correct, wrong, score }: { correct: number; wrong: number; score: number }) {
-  const slideInAnim = useRef(new Animated.Value(50)).current;
-  const opacityAnim = useRef(new Animated.Value(0)).current;
+  const [slideInAnim] = useState(() => new Animated.Value(50));
+  const [opacityAnim] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
     Animated.parallel([
       Animated.timing(slideInAnim, { toValue: 0, duration: 500, delay: 200, useNativeDriver: true }),
       Animated.timing(opacityAnim, { toValue: 1, duration: 500, delay: 200, useNativeDriver: true }),
     ]).start();
-  }, []);
+  }, [opacityAnim, slideInAnim]);
 
   return (
     <Animated.View style={[ss.scoreRowContainer, { transform: [{ translateY: slideInAnim }], opacity: opacityAnim }]}>
@@ -153,11 +179,7 @@ function RecommendCharacters({ contextId, wrongCount }: { contextId: string; wro
 // Cho phep nguoi dung danh gia quiz (1-5 sao) ngay sau khi xem ket qua, de
 // tinh nang rating trung binh (Quiz.rating/ratingCount) co du lieu thuc.
 function RateQuizCard({ quizId }: { quizId: string }) {
-  const { data: myRatingData } = useQuery({
-    queryKey: ['quiz-my-rating', quizId],
-    queryFn: () => quizApi.getMyRating(quizId),
-    enabled: !!quizId,
-  });
+  const { data: myRatingData } = useMyRating(quizId);
   const { mutate: rate, isPending } = useRateQuiz(quizId);
   const [localValue, setLocalValue] = useState<number | null>(null);
   const [justRated, setJustRated] = useState(false);
@@ -275,11 +297,7 @@ export default function QuizResultScreen() {
     );
   }
 
-  const { data: detailData, isLoading, refetch, isRefetching } = useQuery({
-    queryKey: ['quiz-result-detail', sessionId],
-    queryFn: () => quizApi.getMyResultBySession(sessionId!),
-    enabled: !!sessionId,
-  });
+  const { data: detailData, isLoading, refetch, isRefetching } = useQuizResultDetail(sessionId);
 
   const finished = sessionId && detailData
     ? {
@@ -293,14 +311,14 @@ export default function QuizResultScreen() {
         percentage: detailData.percentage,
         startTime: detailData.startedAt,
         endTime: detailData.completedAt,
-        correctAnswers: Array(detailData.questions.filter((q) => q.selectedAnswer === q.correctAnswer).length).fill(0),
-        wrongAnswers: Array(detailData.totalQuestions - detailData.questions.filter((q) => q.selectedAnswer === q.correctAnswer).length).fill(0),
+        correctAnswers: Array(detailData.questions.filter((q) => q.correct).length).fill(0),
+        wrongAnswers: Array(detailData.totalQuestions - detailData.questions.filter((q) => q.correct).length).fill(0),
       },
-      questions: detailData.questions,
+      questions: detailData.questions as (QuizQuestion & { correct?: boolean })[],
       userAnswers: detailData.questions.reduce((acc, q) => {
-        acc[q.questionId] = q.selectedAnswer;
+        if (q.submittedAnswer) acc[q.questionId] = q.submittedAnswer;
         return acc;
-      }, {} as Record<string, number>),
+      }, {} as Record<string, AnswerData>),
     }
     : finishedStore;
 
@@ -356,7 +374,7 @@ export default function QuizResultScreen() {
     ? result.correctAnswers.length
     : typeof result.correctAnswers === 'number'
       ? result.correctAnswers
-      : questions.filter((q) => userAnswers[q.questionId] === q.correctAnswer).length;
+      : questions.filter((q) => questionCorrect(q, userAnswers[q.questionId])).length;
 
   const wrongCount = Array.isArray(result.wrongAnswers)
     ? result.wrongAnswers.length
@@ -448,9 +466,10 @@ export default function QuizResultScreen() {
           )}
 
           {questions.map((q, qi) => {
-            const answerIdx = userAnswers[q.questionId];
-            const isCorrect = answerIdx === q.correctAnswer;
-            const wasAnswered = answerIdx !== undefined;
+            const answer = userAnswers[q.questionId];
+            const isCorrect = questionCorrect(q, answer);
+            const wasAnswered = isAnswerComplete(q, answer);
+            const correctText = hasAnswerKey(q) ? describeCorrectAnswer(q) : '';
 
             if (reviewFilter === 'wrong' && isCorrect) return null;
 
@@ -475,51 +494,17 @@ export default function QuizResultScreen() {
 
                 <Text style={ss.qContent}>{q.content}</Text>
 
-                {/* Options */}
-                <View style={{ gap: 10, marginTop: 14 }}>
-                  {q.options.map((opt, oi) => {
-                    const isUserAnswer = wasAnswered && answerIdx === oi;
-                    const isCorrectOpt = oi === q.correctAnswer;
-                    let borderColor: string = BORDER;
-                    let bgColor: string = 'transparent';
-                    let textColor: string = TEXT2;
-                    let borderWidth = 1;
-
-                    if (isCorrectOpt) {
-                      borderColor = GREEN;
-                      bgColor = 'rgba(74, 140, 98, 0.08)';
-                      textColor = TEXT;
-                      borderWidth = 2;
-                    }
-                    if (isUserAnswer && !isCorrect) {
-                      borderColor = RED;
-                      bgColor = 'rgba(154, 63, 67, 0.08)';
-                      textColor = TEXT;
-                      borderWidth = 2;
-                    }
-
-                    return (
-                      <View
-                        key={oi}
-                        style={[
-                          ss.reviewOpt,
-                          { borderColor, backgroundColor: bgColor, borderWidth },
-                        ]}
-                      >
-                        <View style={[ss.optLetterBadge, { borderColor, backgroundColor: bgColor }]}>
-                          <Text style={[ss.optLetter, { color: borderColor }]}>
-                            {OPTION_LETTERS[oi]}
-                          </Text>
-                        </View>
-                        <Text style={{ flex: 1, color: textColor, fontSize: 14, lineHeight: 20, fontWeight: '500' }}>
-                          {opt}
-                        </Text>
-                        {isCorrectOpt && <CheckCircle2 size={16} color={GREEN} strokeWidth={2.5} />}
-                        {isUserAnswer && !isCorrect && <XCircle size={16} color={RED} strokeWidth={2.5} />}
-                      </View>
-                    );
-                  })}
+                <View style={{ marginTop: 14 }}>
+                  <QuestionInput question={q} answer={answer} onAnswer={() => {}} revealed={hasAnswerKey(q)} locked />
                 </View>
+                {!wasAnswered ? (
+                  <Text style={{ color: MUTED, fontSize: 12, marginTop: 8 }}>Bạn chưa trả lời câu này.</Text>
+                ) : null}
+                {!isCorrect && correctText && q.questionType !== 'MULTIPLE_CHOICE' ? (
+                  <Text style={{ color: GREEN, fontSize: 13, fontWeight: '700', marginTop: 8 }}>
+                    Đáp án đúng: {correctText}
+                  </Text>
+                ) : null}
 
                 {/* Explanation */}
                 {q.explanation && (
@@ -606,7 +591,7 @@ const ss = StyleSheet.create({
     width: '88%',
     maxWidth: 400,
     backgroundColor: CARD,
-    borderRadius: 20,
+    borderRadius: 12,
     padding: 22,
     borderWidth: 1,
     borderColor: BORDER,
@@ -651,6 +636,8 @@ const ss = StyleSheet.create({
     letterSpacing: -0.5,
   },
 
+  ringRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  tierLine: { marginTop: 12, color: TEXT2, fontSize: 14, textAlign: 'center' },
   ring: {
     width: 160,
     height: 160,
@@ -697,17 +684,17 @@ const ss = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 12,
-    borderRadius: 14,
+    borderRadius: 10,
     borderWidth: 1.5,
     gap: 4,
   },
   scoreCardCorrect: {
-    borderColor: 'rgba(74, 140, 98, 0.4)',
-    backgroundColor: 'rgba(74, 140, 98, 0.06)',
+    borderColor: 'rgba(63, 107, 69, 0.4)',
+    backgroundColor: 'rgba(63, 107, 69, 0.06)',
   },
   scoreCardWrong: {
-    borderColor: 'rgba(154, 63, 67, 0.4)',
-    backgroundColor: 'rgba(154, 63, 67, 0.06)',
+    borderColor: 'rgba(201, 98, 14, 0.4)',
+    backgroundColor: 'rgba(201, 98, 14, 0.06)',
   },
   scoreCardScore: {
     borderColor: ORANGE_BORDER_STRONG,
@@ -727,10 +714,10 @@ const ss = StyleSheet.create({
     marginTop: 20,
     paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: 24,
-    backgroundColor: 'rgba(74, 140, 98, 0.1)',
+    borderRadius: 12,
+    backgroundColor: 'rgba(63, 107, 69, 0.1)',
     borderWidth: 1,
-    borderColor: 'rgba(74, 140, 98, 0.3)',
+    borderColor: 'rgba(63, 107, 69, 0.3)',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
@@ -745,7 +732,7 @@ const ss = StyleSheet.create({
     marginTop: 12,
     paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: 24,
+    borderRadius: 12,
     borderWidth: 1,
     flexDirection: 'row',
     alignItems: 'center',
@@ -770,7 +757,7 @@ const ss = StyleSheet.create({
   reviewFilterChip: {
     paddingHorizontal: 14,
     paddingVertical: 7,
-    borderRadius: 20,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: BORDER,
     backgroundColor: CARD,
@@ -781,7 +768,7 @@ const ss = StyleSheet.create({
   },
   reviewFilterChipWrong: {
     borderColor: RED,
-    backgroundColor: 'rgba(154, 63, 67, 0.08)',
+    backgroundColor: 'rgba(201, 98, 14, 0.08)',
   },
   reviewFilterText: {
     color: MUTED,
@@ -805,7 +792,7 @@ const ss = StyleSheet.create({
 
   reviewCard: {
     backgroundColor: CARD,
-    borderRadius: 16,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: BORDER,
     padding: 16,
@@ -821,11 +808,11 @@ const ss = StyleSheet.create({
   },
   badgeCorrect: {
     borderColor: GREEN,
-    backgroundColor: 'rgba(74, 140, 98, 0.1)',
+    backgroundColor: 'rgba(63, 107, 69, 0.1)',
   },
   badgeWrong: {
     borderColor: RED,
-    backgroundColor: 'rgba(154, 63, 67, 0.1)',
+    backgroundColor: 'rgba(201, 98, 14, 0.1)',
   },
   questionNumber: {
     fontWeight: '800',
@@ -891,7 +878,7 @@ const ss = StyleSheet.create({
 
   rateSection: {
     backgroundColor: CARD,
-    borderRadius: 16,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: BORDER,
     padding: 16,
@@ -912,7 +899,7 @@ const ss = StyleSheet.create({
 
   recommendSection: {
     backgroundColor: CARD,
-    borderRadius: 16,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: ORANGE_BORDER_STRONG,
     padding: 16,
@@ -982,7 +969,7 @@ const ss = StyleSheet.create({
     justifyContent: 'center',
     gap: 6,
     backgroundColor: ORANGE_TINT,
-    borderRadius: 14,
+    borderRadius: 10,
     borderWidth: 1.5,
     borderColor: ORANGE,
     paddingVertical: 12,
@@ -994,7 +981,7 @@ const ss = StyleSheet.create({
     justifyContent: 'center',
     gap: 6,
     backgroundColor: ORANGE,
-    borderRadius: 14,
+    borderRadius: 10,
     paddingVertical: 12,
     shadowColor: ORANGE,
     shadowOpacity: 0.3,

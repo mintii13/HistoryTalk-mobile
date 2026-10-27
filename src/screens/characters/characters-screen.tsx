@@ -1,19 +1,21 @@
 import { useRouter } from 'expo-router';
-import { ChevronRight, Search } from 'lucide-react-native';
+import { ChevronRight, MessageCircle, Search } from 'lucide-react-native';
 import { useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
   Pressable,
-  ScrollView,
   StyleSheet,
-  TextInput,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { EmptyState } from '@/components/empty-state';
+import { ChipScroller, PageHeading } from '@/components/archive';
+import { HeaderIconButton } from '@/components/screen-header';
+import { useAuthStore } from '@/features/auth/store';
+import { TextInput } from '@/components/ui/text-input';
 import { CharacterCard, CHAR_CARD_LG_WIDTH, CHAR_CARD_LG_HEIGHT } from '@/components/cards';
-import { Heading } from '@/components/ui/heading';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Text } from '@/components/ui/text';
 import {
@@ -128,13 +130,23 @@ function ListHeader({
   onSearchChange: (v: string) => void;
   onEraChange: (v: EraFilter) => void;
 }) {
+  const router = useRouter();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   return (
     <View>
       <View style={{ paddingHorizontal: H_PADDING, paddingTop: 20, paddingBottom: 16 }}>
-        <Heading size="3xl">Nhân vật lịch sử</Heading>
-        <Text size="sm" muted className="mt-1">
-          Khám phá các nhân vật nổi bật qua các thời đại
-        </Text>
+        <PageHeading
+          title="Nhân vật lịch sử"
+          description="Khám phá các nhân vật nổi bật qua các thời đại"
+          right={
+            // Lich su tro chuyen o ngay man chon nhan vat (menu web co muc rieng, tab mobile khong con cho).
+            isAuthenticated ? (
+              <HeaderIconButton label="Lịch sử trò chuyện" onPress={() => router.push('/chat/history')}>
+                <MessageCircle size={19} color={TEXT} strokeWidth={2} />
+              </HeaderIconButton>
+            ) : null
+          }
+        />
       </View>
 
       {/* Search bar */}
@@ -145,7 +157,7 @@ function ListHeader({
           flexDirection: 'row',
           alignItems: 'center',
           backgroundColor: SURFACE,
-          borderRadius: 16,
+          borderRadius: 12,
           paddingHorizontal: 14,
           height: 46,
           borderWidth: 1,
@@ -166,11 +178,7 @@ function ListHeader({
       </View>
 
       {/* Era filter pills */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: H_PADDING, gap: 8, paddingBottom: 18 }}
-      >
+      <ChipScroller paddingHorizontal={H_PADDING} style={{ marginBottom: 18 }}>
         {ERA_FILTER_OPTIONS.map(({ key, label }) => {
           const isActive = era === key;
           const activeEraColor = (key !== 'ALL' && isActive && key in ERA_COLORS)
@@ -208,7 +216,7 @@ function ListHeader({
             </Pressable>
           );
         })}
-      </ScrollView>
+      </ChipScroller>
     </View>
   );
 }
@@ -271,17 +279,9 @@ export default function CharactersScreen() {
   const emptyComponent = isLoading ? (
     <SkeletonGrid />
   ) : isError ? (
-    <View style={{ paddingTop: 80, alignItems: 'center', paddingHorizontal: H_PADDING }}>
-      <Text muted className="text-center">
-        Không thể tải dữ liệu. Vui lòng thử lại.
-      </Text>
-    </View>
+    <EmptyState mood="sad" title="Không thể tải dữ liệu" description="Vui lòng thử lại." />
   ) : (
-    <View style={{ paddingTop: 80, alignItems: 'center', paddingHorizontal: H_PADDING }}>
-      <Text muted className="text-center">
-        Không tìm thấy nhân vật nào.
-      </Text>
-    </View>
+    <EmptyState mood="thinking" title="Không tìm thấy nhân vật nào" description="Thử từ khoá khác hoặc chọn thời đại khác." />
   );
   const footerComponent = isFetchingNextPage ? (
     <ActivityIndicator color={ORANGE} style={{ marginVertical: 20 }} />

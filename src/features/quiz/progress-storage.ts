@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import type { AnswerData } from './question-data';
 import type { QuizSession } from './types';
 
 const KEY_PREFIX = 'quiz-progress:';
@@ -7,7 +8,7 @@ const MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
 export interface SavedQuizProgress {
   session: QuizSession;
-  userAnswers: Record<string, number>;
+  userAnswers: Record<string, AnswerData>;
   elapsedSeconds: number;
   flaggedIds: string[];
   currentIdx: number;
@@ -28,7 +29,10 @@ export async function loadQuizProgress(quizId: string): Promise<SavedQuizProgres
     const raw = await AsyncStorage.getItem(KEY_PREFIX + quizId);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as SavedQuizProgress;
-    if (Date.now() - parsed.savedAt > MAX_AGE_MS) {
+    // Ban luu theo format cau hoi cu (options/selectedAnswer) khong con nop duoc len BE.
+    const legacy = parsed.session?.questions?.some((q) => !q.questionType)
+      || Object.values(parsed.userAnswers ?? {}).some((a) => typeof a !== 'object');
+    if (legacy || Date.now() - parsed.savedAt > MAX_AGE_MS) {
       await AsyncStorage.removeItem(KEY_PREFIX + quizId);
       return null;
     }

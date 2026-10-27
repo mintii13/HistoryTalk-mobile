@@ -23,6 +23,7 @@ import {
   SURFACE,
   TEXT,
 } from '@/constants/palette';
+import { AppFonts } from '@/constants/theme';
 import { ERA_LABELS } from '@/features/characters/types';
 import {
   getContextImageUri,
@@ -74,7 +75,7 @@ export function ContextTimeline({
   const stripRef = useRef<ScrollView>(null);
   const stripWidthRef = useRef(0);
   const cardListRef = useRef<FlatList<HistoricalContext>>(null);
-  const scrollX = useRef(new RNAnimated.Value(0)).current;
+  const [scrollX] = useState(() => new RNAnimated.Value(0));
 
   const clampedIdx = Math.min(activeIdx, Math.max(0, events.length - 1));
 
@@ -331,7 +332,7 @@ const s = StyleSheet.create({
     backgroundColor: CARD,
     borderWidth: 1,
     borderColor: BORDER,
-    borderRadius: 16,
+    borderRadius: 12,
     paddingHorizontal: 8,
     paddingVertical: 4,
   },
@@ -406,7 +407,7 @@ const s = StyleSheet.create({
   },
   card: {
     backgroundColor: CARD,
-    borderRadius: 20,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: BORDER,
     overflow: 'hidden',
@@ -439,16 +440,16 @@ const s = StyleSheet.create({
   },
   cardTitle: {
     color: TEXT,
+    fontFamily: AppFonts.title,
     fontSize: 19,
-    fontWeight: '800',
-    lineHeight: 26,
+    lineHeight: 25,
     marginBottom: 6,
   },
+  // Chu thuong, khong nghieng: font nghieng gia lap tren Android/web lech han voi phan con lai.
   cardSummary: {
     color: MUTED,
     fontSize: 13,
     lineHeight: 19,
-    fontStyle: 'italic',
     marginBottom: 12,
   },
   cardFooter: {

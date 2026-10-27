@@ -1,13 +1,14 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowLeft, Trophy } from 'lucide-react-native';
+import { Trophy } from 'lucide-react-native';
 import { useState } from 'react';
-import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { EmptyState } from '@/components/empty-state';
+import { ScreenHeader } from '@/components/screen-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Text } from '@/components/ui/text';
 import {
-  BG,
   BORDER,
   CARD,
   GREEN,
@@ -15,7 +16,6 @@ import {
   ORANGE,
   RED,
   TEXT,
-  TEXT2,
 } from '@/constants/palette';
 import { useQuizResults } from '@/features/quiz/hooks/use-quiz-results';
 import type { MyResult } from '@/features/quiz/types';
@@ -65,19 +65,11 @@ export default function QuizHistoryScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: 'transparent' }} edges={['top']}>
-      <View style={s.headerBar}>
-        <TouchableOpacity onPress={() => router.back()} activeOpacity={0.7} style={s.iconBtn}>
-          <ArrowLeft size={20} color={TEXT} strokeWidth={2} />
-        </TouchableOpacity>
-        <Text style={s.headerTitle} numberOfLines={1}>
-          {targetTitle ? `Lịch sử: ${targetTitle}` : 'Lịch sử làm quiz'}
-        </Text>
-        <View style={{ width: 40 }} />
-      </View>
+      <ScreenHeader title={targetTitle ? `Lịch sử: ${targetTitle}` : 'Lịch sử làm quiz'} />
 
       {isLoading ? (
         <View style={{ padding: 20, gap: 12 }}>
-          {[0, 1, 2].map((i) => <Skeleton key={i} style={{ height: 76, borderRadius: 16 }} />)}
+          {[0, 1, 2].map((i) => <Skeleton key={i} style={{ height: 76, borderRadius: 12 }} />)}
         </View>
       ) : (
         <FlatList
@@ -88,12 +80,10 @@ export default function QuizHistoryScreen() {
           refreshing={isRefetching}
           onRefresh={() => void refetch()}
           ListEmptyComponent={
-            <View style={{ alignItems: 'center', marginTop: 60, gap: 10 }}>
-              <Trophy size={36} color={MUTED} />
-              <Text style={{ color: TEXT2, fontSize: 14 }}>
-                {targetQuizId ? 'Bạn chưa làm bài quiz này lần nào' : 'Bạn chưa làm bài quiz nào'}
-              </Text>
-            </View>
+            <EmptyState
+              title={targetQuizId ? 'Bạn chưa làm bài quiz này lần nào' : 'Bạn chưa làm bài quiz nào'}
+              description="Làm một bộ đề để lưu lại kết quả luyện tập ở đây."
+            />
           }
           ListFooterComponent={
             data && (data.hasNext || data.hasPrevious) ? (
@@ -123,20 +113,10 @@ export default function QuizHistoryScreen() {
 }
 
 const s = StyleSheet.create({
-  headerBar: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingVertical: 12,
-    borderBottomWidth: 1, borderBottomColor: BORDER,
-  },
-  iconBtn: {
-    width: 40, height: 40, borderRadius: 12,
-    alignItems: 'center', justifyContent: 'center', backgroundColor: CARD,
-  },
-  headerTitle: { color: TEXT, fontSize: 17, fontWeight: '700' },
 
   card: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: CARD, borderRadius: 16, borderWidth: 1, borderColor: BORDER,
+    backgroundColor: CARD, borderRadius: 12, borderWidth: 1, borderColor: BORDER,
     paddingHorizontal: 14, paddingVertical: 12,
   },
   iconWrap: {

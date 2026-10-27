@@ -14,7 +14,6 @@ src/
 ├── features/     # data layer per domain: api.ts, hooks/, types.ts, store.ts, schemas.ts
 ├── components/   # shared UI (components/ui = gluestack design system, cards/, ...)
 ├── providers/    # app-providers.tsx (Gluestack+Query+Theme), use-protected-route.ts
-├── hooks/        # app-wide hooks (use-theme, use-color-scheme)
 ├── lib/          # infra: api-client, query-client, secure-storage, azure-speech
 └── constants/    # palette, theme
 ```

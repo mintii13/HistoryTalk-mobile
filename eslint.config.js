@@ -5,6 +5,11 @@ const expoConfig = require("eslint-config-expo/flat");
 module.exports = defineConfig([
   expoConfig,
   {
-    ignores: ["dist/*"],
-  }
+    ignores: ["dist/*", ".expo/*"],
+  },
+  {
+    // Node scripts (postinstall patches, emulator launcher) run outside the app bundle.
+    files: ["scripts/**/*.js"],
+    languageOptions: { globals: { __dirname: "readonly", require: "readonly", module: "writable", process: "readonly" } },
+  },
 ]);

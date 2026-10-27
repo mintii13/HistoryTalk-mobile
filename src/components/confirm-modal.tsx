@@ -127,7 +127,7 @@ const s = StyleSheet.create({
   card: {
     width: "100%",
     maxWidth: 360,
-    borderRadius: 18,
+    borderRadius: 12,
     backgroundColor: CARD,
     borderWidth: 1,
     borderColor: BORDER,
@@ -137,7 +137,7 @@ const s = StyleSheet.create({
   iconWrap: {
     width: 48,
     height: 48,
-    borderRadius: 16,
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 12,
@@ -164,7 +164,7 @@ const s = StyleSheet.create({
   cancelBtn: {
     flex: 1,
     height: 44,
-    borderRadius: 14,
+    borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: SURFACE,
@@ -179,7 +179,7 @@ const s = StyleSheet.create({
   confirmBtn: {
     flex: 1,
     height: 44,
-    borderRadius: 14,
+    borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
   },

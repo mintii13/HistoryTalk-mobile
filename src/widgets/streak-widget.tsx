@@ -25,17 +25,17 @@ export interface StreakWidgetProps {
 // ---------------------------------------------------------------------------
 // Light-theme palette — giu thiet ke moi nhung dung gam mau sang am cua HistoryTalk.
 // ---------------------------------------------------------------------------
-const BG = '#F7F1EA';           // warm light background
-const TEXT_PRIMARY = '#322D29'; // dark brown text
+const BG = '#F5F2EA';           // warm light background
+const TEXT_PRIMARY = '#111111'; // dark brown text
 const TEXT_MUTED = '#7A7067';   // medium brown muted text
-const ACCENT = '#72383D';       // brand reddish orange
-const GREEN_DONE = '#4A8C62';   // brand green for completed days
-const RED_MISS = '#9A3F43';     // brand red for missed days
+const ACCENT = '#B8321F';       // brand reddish orange
+const GREEN_DONE = '#3F6B45';   // brand green for completed days
+const RED_MISS = '#C9620E';     // brand red for missed days
 const BLUE_TODAY = '#3B82F6';   // active blue ring for today
 const GREY_RING = '#D6D3D1';    // subtle ring for upcoming days
-const TRACK_BG = 'rgba(114, 56, 61, 0.14)';
-const CHIP_BG = 'rgba(50, 45, 41, 0.05)';
-const CHAR_BG = 'rgba(114, 56, 61, 0.08)';
+const TRACK_BG = 'rgba(184, 50, 31, 0.14)';
+const CHIP_BG = 'rgba(17, 17, 17, 0.05)';
+const CHAR_BG = 'rgba(184, 50, 31, 0.08)';
 
 const WEEKDAY_LABELS = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
 const DOT_SIZE = 28;
@@ -73,7 +73,7 @@ function dotSvg(state: DayState, isToday: boolean): string {
     case 'today':
       return circleSvg({ fill: 'rgba(59, 130, 246, 0.12)', stroke: BLUE_TODAY, strokeWidth: 2.5 });
     case 'missed':
-      return circleSvg({ fill: 'rgba(154, 63, 67, 0.10)', stroke: RED_MISS, strokeWidth: 1.5 });
+      return circleSvg({ fill: 'rgba(201, 98, 14, 0.10)', stroke: RED_MISS, strokeWidth: 1.5 });
     case 'upcoming':
     default:
       return circleSvg({ fill: 'none', stroke: GREY_RING, strokeWidth: 1.5 });
@@ -202,7 +202,7 @@ export function StreakWidget({ streakCount, questsCompleted, questsTotal, week, 
           height: 'match_parent',
           width: 'match_parent',
           backgroundColor: BG,
-          borderRadius: 20,
+          borderRadius: 12,
         }}
       />
 
@@ -284,13 +284,13 @@ export function StreakWidget({ streakCount, questsCompleted, questsTotal, week, 
               alignItems: 'center',
               width: 'match_parent',
               backgroundColor: CHAR_BG,
-              borderRadius: 14,
+              borderRadius: 10,
               paddingHorizontal: 12,
               paddingVertical: 10,
             }}
           >
             <ImageWidget
-              image={require('../../assets/logo.png')}
+              image={require('@/assets/logo.png')}
               imageWidth={18}
               imageHeight={18}
               radius={9}

@@ -68,7 +68,7 @@ const s = StyleSheet.create({
     width: '85%',
     maxWidth: 360,
     backgroundColor: CARD,
-    borderRadius: 20,
+    borderRadius: 12,
     padding: 22,
     borderWidth: 1,
     borderColor: BORDER,

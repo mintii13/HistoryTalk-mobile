@@ -1,5 +1,7 @@
 import React from "react";
-import { Linking, Text, TextStyle, View } from "react-native";
+import { Linking, TextStyle, View } from "react-native";
+
+import { RawText as Text } from "@/components/ui/text";
 import { MUTED, ORANGE, TEXT } from "@/constants/palette";
 
 interface FormattedMarkdownProps {

@@ -1,6 +1,8 @@
 import { tva } from '@gluestack-ui/nativewind-utils/tva';
 import React from 'react';
-import { ActivityIndicator, Pressable, Text } from 'react-native';
+import { ActivityIndicator, Pressable } from 'react-native';
+
+import { RawText as Text } from '@/components/ui/text';
 
 const buttonStyle = tva({
   base: 'flex-row items-center justify-center rounded-2xl gap-2',

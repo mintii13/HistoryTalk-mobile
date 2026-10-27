@@ -1,6 +1,8 @@
 import { tva } from '@gluestack-ui/nativewind-utils/tva';
 import React from 'react';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
+
+import { RawText as Text } from '@/components/ui/text';
 
 const badgeStyle = tva({
   base: 'flex-row items-center self-start rounded-full border',

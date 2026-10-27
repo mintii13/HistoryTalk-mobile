@@ -4,13 +4,13 @@
  */
 export const HistoryTalkColors = {
   light: {
-    accent: '#72383D',
-    accentSoft: '#8D4A50',
-    bgMain: '#EFE9E1',
-    surface: '#F7F1EA',
-    textPrimary: '#322D29',
-    textSecondary: '#5F554E',
-    border: 'rgba(50,45,41,0.14)',
+    accent: '#B8321F',
+    accentSoft: '#9A2A18',
+    bgMain: '#ECE7DC',
+    surface: '#F5F2EA',
+    textPrimary: '#111111',
+    textSecondary: '#5F5B55',
+    border: 'rgba(17,17,17,0.14)',
   },
   dark: {
     accent: '#EA7A0A',
@@ -22,11 +22,11 @@ export const HistoryTalkColors = {
     border: 'rgba(231,221,200,0.12)',
   },
   toast: {
-    success: '#4A8C62',
-    error: '#9A3F43',
-    warning: '#B88C3C',
-    info: '#72383D',
-    default: '#72383D',
+    success: '#3F6B45',
+    error: '#C9620E',
+    warning: '#B7791F',
+    info: '#B8321F',
+    default: '#B8321F',
   },
 } as const;
 
@@ -37,43 +37,33 @@ export const BORDER = HistoryTalkColors.light.border;
 
 export const ORANGE = HistoryTalkColors.light.accent;
 export const ORANGE_DARK = HistoryTalkColors.light.accentSoft;
-export const ORANGE_TINT_FAINT = 'rgba(114,56,61,0.08)';
-export const ORANGE_TINT_SOFT = 'rgba(114,56,61,0.10)';
-export const ORANGE_TINT_MUTED = 'rgba(114,56,61,0.12)';
-export const ORANGE_TINT = 'rgba(114,56,61,0.15)';
-export const ORANGE_TINT_BADGE = 'rgba(114,56,61,0.18)';
-export const ORANGE_TINT_STRONG = 'rgba(114,56,61,0.28)';
-export const ORANGE_TINT_SOLID = 'rgba(114,56,61,0.78)';
-export const ORANGE_BORDER_FAINT = 'rgba(114,56,61,0.20)';
-export const ORANGE_BORDER_SOFT = 'rgba(114,56,61,0.22)';
-export const ORANGE_BORDER_MUTED = 'rgba(114,56,61,0.25)';
-export const ORANGE_BORDER = 'rgba(114,56,61,0.35)';
-export const ORANGE_BORDER_MEDIUM = 'rgba(114,56,61,0.30)';
-export const ORANGE_BORDER_STRONG = 'rgba(114,56,61,0.40)';
-export const ORANGE_BORDER_FOCUS = 'rgba(114,56,61,0.50)';
-export const ORANGE_BORDER_ACTIVE = 'rgba(114,56,61,0.60)';
+export const ORANGE_TINT_FAINT = 'rgba(184,50,31,0.08)';
+export const ORANGE_TINT_SOFT = 'rgba(184,50,31,0.10)';
+export const ORANGE_TINT_MUTED = 'rgba(184,50,31,0.12)';
+export const ORANGE_TINT = 'rgba(184,50,31,0.15)';
+export const ORANGE_TINT_STRONG = 'rgba(184,50,31,0.28)';
+export const ORANGE_TINT_SOLID = 'rgba(184,50,31,0.78)';
+export const ORANGE_BORDER_SOFT = 'rgba(184,50,31,0.22)';
+export const ORANGE_BORDER_MUTED = 'rgba(184,50,31,0.25)';
+export const ORANGE_BORDER = 'rgba(184,50,31,0.35)';
+export const ORANGE_BORDER_MEDIUM = 'rgba(184,50,31,0.30)';
+export const ORANGE_BORDER_STRONG = 'rgba(184,50,31,0.40)';
+export const ORANGE_BORDER_FOCUS = 'rgba(184,50,31,0.50)';
 
 export const TEXT = HistoryTalkColors.light.textPrimary;
 export const TEXT2 = HistoryTalkColors.light.textSecondary;
 export const MUTED = HistoryTalkColors.light.textSecondary;
-export const TEXT_TINT_FAINT = 'rgba(50,45,41,0.04)';
-export const TEXT_TINT_SOFT = 'rgba(50,45,41,0.05)';
-export const TEXT_OVERLAY_MEDIUM = 'rgba(50,45,41,0.45)';
-export const TEXT_OVERLAY = 'rgba(50,45,41,0.55)';
-export const TEXT_OVERLAY_STRONG = 'rgba(50,45,41,0.82)';
-export const TEXT_OVERLAY_DARK = 'rgba(50,45,41,0.85)';
-export const TEXT_OVERLAY_SOLID = 'rgba(50,45,41,0.94)';
+export const TEXT_TINT_FAINT = 'rgba(17,17,17,0.04)';
+export const TEXT_TINT_SOFT = 'rgba(17,17,17,0.05)';
 
 export const GREEN = HistoryTalkColors.toast.success;
 export const RED = HistoryTalkColors.toast.error;
 export const AMBER = HistoryTalkColors.toast.warning;
 
-export const Radius = {
-  badge: 6,
-  button: 10,
-  card: 16,
-  pill: 999,
-} as const;
+// Mau phu theo bo nhan dien web: men lam (quiz), ngoc (boi canh/doc), vang dong (nhan vat/canh bao).
+export const MEN_LAM = '#1F4E9C';
+export const JADE = '#1E8A6E';
+export const GOLD = '#C9961F';
 
 export const FontSize = {
   xs: 11,   // micro labels, timestamps, hints

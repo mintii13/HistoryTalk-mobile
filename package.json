@@ -3,6 +3,9 @@
   "main": "./index.js",
   "version": "1.0.0",
   "dependencies": {
+    "@expo-google-fonts/big-shoulders": "^0.4.1",
+    "@expo-google-fonts/inter": "^0.4.2",
+    "@expo-google-fonts/plus-jakarta-sans": "^0.4.2",
     "@expo/ui": "~56.0.17",
     "@gluestack-ui/nativewind-utils": "^1.0.28",
     "@gluestack-ui/overlay": "^0.1.22",
@@ -63,7 +66,6 @@
   },
   "scripts": {
     "start": "expo start",
-    "reset-project": "node ./scripts/reset-project.js",
     "android": "expo run:android",
     "android:launch": "node scripts/launch-android-emulator.js",
     "ios": "expo run:ios",

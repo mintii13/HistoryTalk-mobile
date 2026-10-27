@@ -1,12 +1,15 @@
 import { tva } from '@gluestack-ui/nativewind-utils/tva';
 import React from 'react';
-import { Text, type TextProps } from 'react-native';
+import { StyleSheet, Text, type TextProps } from 'react-native';
 
 import { AppFonts } from '@/constants/theme';
 
 const headingStyle = tva({
-  base: 'text-history-text font-bold tracking-tight',
+  base: 'font-bold tracking-tight',
   variants: {
+    tone: {
+      ink: 'text-history-text',
+    },
     size: {
       xs:   'text-xs leading-4',
       sm:   'text-sm leading-5',
@@ -30,14 +33,22 @@ type HeadingProps = TextProps & {
 };
 
 const Heading = React.forwardRef<React.ElementRef<typeof Text>, HeadingProps>(
-  ({ className, size = 'lg', style, ...props }, ref) => (
-    <Text
-      ref={ref}
-      className={headingStyle({ size, class: className })}
-      style={[{ fontFamily: AppFonts.bodyExtraBold }, style]}
-      {...props}
-    />
-  )
+  ({ className, size = 'lg', style, ...props }, ref) => {
+    const flat = StyleSheet.flatten(style) ?? {};
+    return (
+      <Text
+        ref={ref}
+        // Nhu <Text>: class mac dinh chi khi style khong tu dat co chu / mau (tren web class de len style).
+        className={headingStyle({
+          size: flat.fontSize == null ? size : undefined,
+          tone: flat.color == null ? 'ink' : undefined,
+          class: className,
+        })}
+        style={[{ fontFamily: AppFonts.titleExtraBold }, style]}
+        {...props}
+      />
+    );
+  }
 );
 Heading.displayName = 'Heading';
 

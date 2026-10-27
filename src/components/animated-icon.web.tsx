@@ -1,8 +1,4 @@
-// Web stubs — AnimatedSplashOverlay and AnimatedIcon are native-only
+// Web stub — the splash overlay is native-only
 export function AnimatedSplashOverlay() {
-  return null;
-}
-
-export function AnimatedIcon() {
   return null;
 }

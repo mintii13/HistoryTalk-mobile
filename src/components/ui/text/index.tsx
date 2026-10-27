@@ -1,11 +1,11 @@
 import { tva } from '@gluestack-ui/nativewind-utils/tva';
 import React from 'react';
-import { Text as RNText, type TextProps as RNTextProps } from 'react-native';
+import { StyleSheet, Text as RNText, type TextProps as RNTextProps } from 'react-native';
 
-import { AppFonts } from '@/constants/theme';
+import { bodyFontFor } from '@/constants/theme';
 
 const textStyle = tva({
-  base: 'text-history-text',
+  base: '',
   variants: {
     size: {
       '2xs': 'text-[10px] leading-[14px]',
@@ -22,11 +22,11 @@ const textStyle = tva({
     italic: {
       true: 'italic',
     },
-    muted: {
-      true: 'text-history-muted',
+    tone: {
+      ink: 'text-history-text',
+      muted: 'text-history-muted',
     },
   },
-  defaultVariants: { size: 'md' },
 });
 
 type TextSize = '2xs' | 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
@@ -40,15 +40,33 @@ type TextProps = RNTextProps & {
 };
 
 const Text = React.forwardRef<React.ElementRef<typeof RNText>, TextProps>(
-  ({ className, size = 'md', bold, italic, muted, style, ...props }, ref) => (
-    <RNText
-      ref={ref}
-      className={textStyle({ size, bold, italic, muted, class: className })}
-      style={[{ fontFamily: bold ? AppFonts.bodyBold : AppFonts.body }, style]}
-      {...props}
-    />
-  )
+  ({ className, size = 'md', bold, italic, muted, style, ...props }, ref) => {
+    const flat = StyleSheet.flatten(style) ?? {};
+    return (
+      <RNText
+        ref={ref}
+        // Tren web class Tailwind de len style cua man hinh (cung do uu tien, nap sau), nen chi gan
+        // co chu / mau mac dinh khi style khong tu dat — truoc day moi chu tren web deu 16px mau muc.
+        className={textStyle({
+          size: flat.fontSize == null ? size : undefined,
+          bold,
+          italic,
+          tone: flat.color != null ? undefined : muted ? 'muted' : 'ink',
+          class: className,
+        })}
+        // fontWeight cua man hinh quyet dinh file font Inter (Android khong tu ghep weight cho font tuy chinh).
+        style={[{ fontFamily: bodyFontFor(flat.fontWeight ?? (bold ? 700 : 400)) }, style]}
+        {...props}
+      />
+    );
+  }
 );
 Text.displayName = 'Text';
 
-export { Text };
+/** Nhu RN Text (khong co class co chu mac dinh), chi gan font Inter dung do dam. Dung cho badge/nut/component goc. */
+const RawText = React.forwardRef<React.ElementRef<typeof RNText>, RNTextProps>(({ style, ...props }, ref) => (
+  <RNText ref={ref} style={[{ fontFamily: bodyFontFor(StyleSheet.flatten(style)?.fontWeight) }, style]} {...props} />
+));
+RawText.displayName = 'RawText';
+
+export { RawText, Text };

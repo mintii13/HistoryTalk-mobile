@@ -1,11 +1,6 @@
-/**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
- */
+/** Mau theo theme, mau thuong hieu va font cua app (bang mau goc o ./palette). */
 
 import '@/global.css';
-
-import { Platform } from 'react-native';
 
 import { HistoryTalkColors } from './palette';
 
@@ -29,11 +24,11 @@ export const Colors = {
 export const BrandColors = {
   primary: HistoryTalkColors.light.accent,
   primarySoft: HistoryTalkColors.light.accentSoft,
-  primaryMuted: 'rgba(114,56,61,0.08)',
-  primarySubtle: 'rgba(114,56,61,0.15)',
-  primaryFocus: 'rgba(114,56,61,0.25)',
-  primaryBorder: 'rgba(114,56,61,0.28)',
-  primaryStrongBorder: 'rgba(114,56,61,0.35)',
+  primaryMuted: 'rgba(184,50,31,0.08)',
+  primarySubtle: 'rgba(184,50,31,0.15)',
+  primaryFocus: 'rgba(184,50,31,0.25)',
+  primaryBorder: 'rgba(184,50,31,0.28)',
+  primaryStrongBorder: 'rgba(184,50,31,0.35)',
   overlay: 'rgba(0,0,0,0.28)',
   overlayMedium: 'rgba(0,0,0,0.45)',
   pageOverlay: 'rgba(9,9,11,0.55)',
@@ -42,65 +37,46 @@ export const BrandColors = {
   white: '#ffffff',
   muted: HistoryTalkColors.light.textSecondary,
   borderSubtle: HistoryTalkColors.light.border,
-  borderFaint: 'rgba(50,45,41,0.10)',
+  borderFaint: 'rgba(17,17,17,0.10)',
 } as const;
 
-export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
-
-export const Fonts = Platform.select({
-  ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
-    sans: 'system-ui',
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
-    serif: 'ui-serif',
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
-    rounded: 'ui-rounded',
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
-    mono: 'ui-monospace',
-  },
-  default: {
-    sans: 'normal',
-    serif: 'serif',
-    rounded: 'normal',
-    mono: 'monospace',
-  },
-  web: {
-    sans: 'var(--font-display)',
-    serif: 'var(--font-serif)',
-    rounded: 'var(--font-rounded)',
-    mono: 'var(--font-mono)',
-  },
-});
-
+// Cung bo font voi web: Inter (noi dung), Plus Jakarta Sans (tieu de), Big Shoulders (tieu de luu tru in hoa).
 export const AppFonts = {
-  body: 'VLOutfit-Regular',
-  bodyMedium: 'VLOutfit-Medium',
-  bodySemiBold: 'VLOutfit-SemiBold',
-  bodyBold: 'VLOutfit-Bold',
-  bodyExtraBold: 'VLOutfit-ExtraBold',
-  display: 'VLZolina-Medium',
-  displayBlack: 'VLZolina-Black',
+  body: 'Inter-Regular',
+  bodyMedium: 'Inter-Medium',
+  bodySemiBold: 'Inter-SemiBold',
+  bodyBold: 'Inter-Bold',
+  bodyExtraBold: 'Inter-ExtraBold',
+  title: 'PlusJakartaSans-Bold',
+  titleExtraBold: 'PlusJakartaSans-ExtraBold',
+  display: 'BigShoulders-Bold',
+  displayBlack: 'BigShoulders-ExtraBold',
 } as const;
 
 export const FontAssets = {
-  [AppFonts.body]: require('@/assets/fonts/VL Outfit-Regular.otf'),
-  [AppFonts.bodyMedium]: require('@/assets/fonts/VL Outfit-Medium.otf'),
-  [AppFonts.bodySemiBold]: require('@/assets/fonts/VL Outfit-SemiBold.otf'),
-  [AppFonts.bodyBold]: require('@/assets/fonts/VL Outfit-Bold.otf'),
-  [AppFonts.bodyExtraBold]: require('@/assets/fonts/VL Outfit-ExtraBold.otf'),
-  [AppFonts.display]: require('@/assets/fonts/VL ZOLINA-MEDIUM.ttf'),
-  [AppFonts.displayBlack]: require('@/assets/fonts/VL ZOLINA-BLACK.ttf'),
+  [AppFonts.body]: require('@expo-google-fonts/inter/400Regular/Inter_400Regular.ttf'),
+  [AppFonts.bodyMedium]: require('@expo-google-fonts/inter/500Medium/Inter_500Medium.ttf'),
+  [AppFonts.bodySemiBold]: require('@expo-google-fonts/inter/600SemiBold/Inter_600SemiBold.ttf'),
+  [AppFonts.bodyBold]: require('@expo-google-fonts/inter/700Bold/Inter_700Bold.ttf'),
+  [AppFonts.bodyExtraBold]: require('@expo-google-fonts/inter/800ExtraBold/Inter_800ExtraBold.ttf'),
+  [AppFonts.title]: require('@expo-google-fonts/plus-jakarta-sans/700Bold/PlusJakartaSans_700Bold.ttf'),
+  [AppFonts.titleExtraBold]: require('@expo-google-fonts/plus-jakarta-sans/800ExtraBold/PlusJakartaSans_800ExtraBold.ttf'),
+  [AppFonts.display]: require('@expo-google-fonts/big-shoulders/700Bold/BigShoulders_700Bold.ttf'),
+  [AppFonts.displayBlack]: require('@expo-google-fonts/big-shoulders/800ExtraBold/BigShoulders_800ExtraBold.ttf'),
 } as const;
 
-export const Spacing = {
-  half: 2,
-  one: 4,
-  two: 8,
-  three: 16,
-  four: 24,
-  five: 32,
-  six: 64,
-} as const;
+/**
+ * Font tuy chinh khong tu doi theo fontWeight tren Android: chon dung file theo do dam.
+ * Dung trong <Text>/<Heading> nen style `fontWeight: '800'` o man hinh van ra Inter ExtraBold.
+ */
+export function bodyFontFor(weight?: string | number) {
+  const w = Number(weight === 'bold' ? 700 : weight === 'normal' ? 400 : weight ?? 400);
+  if (w >= 800) return AppFonts.bodyExtraBold;
+  if (w >= 700) return AppFonts.bodyBold;
+  if (w >= 600) return AppFonts.bodySemiBold;
+  if (w >= 500) return AppFonts.bodyMedium;
+  return AppFonts.body;
+}
 
-export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
-export const MaxContentWidth = 800;
+// Bo goc theo web (--radius-sm/md/lg): the, o nhap, nut nho gon thay vi bo tron lon.
+export const Radius = { sm: 8, md: 10, lg: 12, pill: 999 } as const;

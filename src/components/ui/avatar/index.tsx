@@ -1,7 +1,9 @@
 import { tva } from '@gluestack-ui/nativewind-utils/tva';
 import { Image } from 'expo-image';
 import React from 'react';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
+
+import { RawText as Text } from '@/components/ui/text';
 
 const avatarStyle = tva({
   base: 'items-center justify-center rounded-full overflow-hidden bg-zinc-800',

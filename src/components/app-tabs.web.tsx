@@ -1,39 +1,21 @@
 import { Slot, usePathname } from "expo-router";
-import { BookOpen, Trophy, User, Users } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 
+import { CUSTOMER_TABS, STUDENT_TABS, isTabActive, shouldHideTabBar } from "@/components/app-tabs-config";
+import { ScreenBackdrop } from "@/components/screen-backdrop";
 import { TabButton } from "@/components/tab-button";
 import { BG, BORDER, CARD } from "@/constants/palette";
+import { useAuthStore } from "@/features/auth/store";
 
 const TAB_BAR_HORIZONTAL_PADDING = 16;
 
-const TABS = [
-  { href: "/characters", label: "Nhân vật", icon: Users },
-  { href: "/context", label: "Bối cảnh", icon: BookOpen },
-  { href: "/", label: "Trang chủ", icon: undefined },
-  { href: "/quiz", label: "Quiz", icon: Trophy },
-  { href: "/profile", label: "Hồ sơ", icon: User },
-] as const;
-
-function isActive(pathname: string, href: string) {
-  return href === "/"
-    ? pathname === "/"
-    : pathname === href || pathname.startsWith(`${href}/`);
-}
-
 export default function AppTabs() {
   const pathname = usePathname();
+  const tabs = useAuthStore((s) => s.user?.role) === "SCHOOL_STUDENT" ? STUDENT_TABS : CUSTOMER_TABS;
 
-  // Hide the tab bar entirely while an active quiz session is running, so the
-  // only way out is the in-screen "Thoát" confirm — no escaping via a tab tap.
-  // Same treatment inside a chat conversation (/chat/<sessionId>): free up
-  // vertical space for the message list + input bar. The /chat list and
-  // /chat/history screens keep the bar.
-  const hideTabBar =
-    pathname === "/quiz/play" ||
-    (pathname.startsWith("/chat/") && pathname !== "/chat/history");
+  const hideTabBar = shouldHideTabBar(pathname);
   const hideProgress = useSharedValue(hideTabBar ? 1 : 0);
   const [barHeight, setBarHeight] = useState(0);
 
@@ -49,6 +31,7 @@ export default function AppTabs() {
   return (
     <View style={styles.root}>
       <View style={styles.content}>
+        <ScreenBackdrop />
         <Slot />
       </View>
 
@@ -57,15 +40,15 @@ export default function AppTabs() {
         style={[styles.bar, barAnimStyle, { pointerEvents: hideTabBar ? "none" : "auto" }]}
       >
         <View style={styles.inner}>
-          {TABS.map(({ href, label, icon }) => (
+          {tabs.map((tab) => (
             <TabButton
-              key={href}
-              href={href}
-              label={label}
-              icon={icon}
-              isHome={href === "/"}
+              key={tab.href}
+              href={tab.href}
+              label={tab.label}
+              icon={tab.icon}
+              isHome={tab.home}
               liftOffset={-5}
-              active={isActive(pathname, href)}
+              active={isTabActive(pathname, tab)}
             />
           ))}
         </View>
@@ -82,6 +65,7 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     overflow: "hidden",
+    position: "relative",
   },
   bar: {
     alignItems: "center",

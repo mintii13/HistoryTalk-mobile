@@ -11,12 +11,12 @@ import {
   Pressable,
   ScrollView,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { TextInput } from '@/components/ui/text-input';
 import { MUTED } from '@/constants/palette';
 import { useRegister } from '@/features/auth/hooks/use-register';
 import { type RegisterInput, registerSchema } from '@/features/auth/schemas';
@@ -63,7 +63,7 @@ export default function RegisterScreen() {
           {/* Error banner */}
           {register.error?.message ? (
             <View className="flex-row items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-5">
-              <AlertCircle size={16} color="#9A3F43" />
+              <AlertCircle size={16} color="#C9620E" />
               <Text className="text-red-700 text-sm flex-1">{register.error.message}</Text>
             </View>
           ) : null}
@@ -83,7 +83,7 @@ export default function RegisterScreen() {
               control={control}
               name="userName"
               render={({ field: { onChange, onBlur, value } }) => (
-                <InputRow icon={<User size={18} color={errors.userName ? '#9A3F43' : MUTED} />} hasError={!!errors.userName}>
+                <InputRow icon={<User size={18} color={errors.userName ? '#C9620E' : MUTED} />} hasError={!!errors.userName}>
                   <TextInput
                     className="flex-1 ml-3 text-history-text text-base"
                     placeholder="nguyenvana"
@@ -105,7 +105,7 @@ export default function RegisterScreen() {
               control={control}
               name="email"
               render={({ field: { onChange, onBlur, value } }) => (
-                <InputRow icon={<Mail size={18} color={errors.email ? '#9A3F43' : MUTED} />} hasError={!!errors.email}>
+                <InputRow icon={<Mail size={18} color={errors.email ? '#C9620E' : MUTED} />} hasError={!!errors.email}>
                   <TextInput
                     className="flex-1 ml-3 text-history-text text-base"
                     placeholder="your@email.com"
@@ -128,7 +128,7 @@ export default function RegisterScreen() {
               control={control}
               name="password"
               render={({ field: { onChange, onBlur, value } }) => (
-                <InputRow icon={<Lock size={18} color={errors.password ? '#9A3F43' : MUTED} />} hasError={!!errors.password}>
+                <InputRow icon={<Lock size={18} color={errors.password ? '#C9620E' : MUTED} />} hasError={!!errors.password}>
                   <TextInput
                     className="flex-1 ml-3 text-history-text text-base"
                     placeholder="••••••••"
@@ -152,7 +152,7 @@ export default function RegisterScreen() {
               control={control}
               name="confirmPassword"
               render={({ field: { onChange, onBlur, value } }) => (
-                <InputRow icon={<Lock size={18} color={errors.confirmPassword ? '#9A3F43' : MUTED} />} hasError={!!errors.confirmPassword}>
+                <InputRow icon={<Lock size={18} color={errors.confirmPassword ? '#C9620E' : MUTED} />} hasError={!!errors.confirmPassword}>
                   <TextInput
                     className="flex-1 ml-3 text-history-text text-base"
                     placeholder="••••••••"

@@ -11,12 +11,12 @@ import {
   Pressable,
   ScrollView,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { TextInput } from '@/components/ui/text-input';
 import { GoogleIcon } from '@/components/google-icon';
 import { MUTED, ORANGE } from '@/constants/palette';
 import { useGoogleAuth } from '@/features/auth/hooks/use-google-auth';
@@ -68,7 +68,7 @@ export default function LoginScreen() {
           {/* Error banner */}
           {errorMessage ? (
             <View className="flex-row items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-5">
-              <AlertCircle size={16} color="#9A3F43" />
+              <AlertCircle size={16} color="#C9620E" />
               <Text className="text-red-700 text-sm flex-1">{errorMessage}</Text>
             </View>
           ) : null}
@@ -85,7 +85,7 @@ export default function LoginScreen() {
                     errors.email ? 'border-red-400' : 'border-history-border'
                   }`}
                 >
-                  <Mail size={18} color={errors.email ? '#9A3F43' : MUTED} />
+                  <Mail size={18} color={errors.email ? '#C9620E' : MUTED} />
                   <TextInput
                     className="flex-1 ml-3 text-history-text text-base"
                     placeholder="your@email.com"
@@ -117,7 +117,7 @@ export default function LoginScreen() {
                     errors.password ? 'border-red-400' : 'border-history-border'
                   }`}
                 >
-                  <Lock size={18} color={errors.password ? '#9A3F43' : MUTED} />
+                  <Lock size={18} color={errors.password ? '#C9620E' : MUTED} />
                   <TextInput
                     className="flex-1 ml-3 text-history-text text-base"
                     placeholder="••••••••"

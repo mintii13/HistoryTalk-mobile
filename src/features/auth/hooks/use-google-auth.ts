@@ -6,6 +6,7 @@ import { Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 
 import { authApi } from '../api';
+import { assertMobileRole } from '../roles';
 import { useAuthStore } from '../store';
 
 WebBrowser.maybeCompleteAuthSession();
@@ -37,7 +38,8 @@ export function useGoogleAuth() {
   });
 
   const mutation = useMutation({
-    mutationFn: (idToken: string) => authApi.googleLogin(idToken),
+    mutationFn: async (idToken: string) =>
+      assertMobileRole(await authApi.googleLogin(idToken), authApi.logout),
     onSuccess: async (data) => {
       await setAuth(data);
       router.replace('/');

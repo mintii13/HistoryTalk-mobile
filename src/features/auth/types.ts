@@ -1,4 +1,10 @@
-export type UserRole = 'CUSTOMER' | 'CONTENT_ADMIN' | 'SYSTEM_ADMIN';
+export type UserRole =
+  | 'CUSTOMER'
+  | 'SCHOOL_STUDENT'
+  | 'TEACHER'
+  | 'SCHOOL_ADMIN'
+  | 'CONTENT_ADMIN'
+  | 'SYSTEM_ADMIN';
 
 export interface AuthUser {
   uid: string;

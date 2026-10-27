@@ -8,12 +8,12 @@ import {
   Platform,
   ScrollView,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { TextInput } from '@/components/ui/text-input';
 import { GREEN, MUTED } from '@/constants/palette';
 import { useForgotPassword } from '@/features/auth/hooks/use-forgot-password';
 import { type ForgotPasswordInput, forgotPasswordSchema } from '@/features/auth/schemas';
@@ -84,7 +84,7 @@ export default function ForgotPasswordScreen() {
               {/* Error banner */}
               {forgot.error ? (
                 <View className="flex-row items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-5">
-                  <AlertCircle size={16} color="#9A3F43" />
+                  <AlertCircle size={16} color="#C9620E" />
                   <Text className="text-red-700 text-sm flex-1">{forgot.error.message}</Text>
                 </View>
               ) : null}
@@ -101,7 +101,7 @@ export default function ForgotPasswordScreen() {
                         errors.email ? 'border-red-400' : 'border-history-border'
                       }`}
                     >
-                      <Mail size={18} color={errors.email ? '#9A3F43' : MUTED} />
+                      <Mail size={18} color={errors.email ? '#C9620E' : MUTED} />
                       <TextInput
                         className="flex-1 ml-3 text-history-text text-base"
                         placeholder="your@email.com"

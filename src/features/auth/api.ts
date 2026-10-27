@@ -1,10 +1,10 @@
-import axios from 'axios';
+import { create } from 'axios';
 
 import type { ApiResponse, AuthResponse, RefreshTokenResponse } from './types';
 
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8080/Historical-tell/api/v1';
 
-const http = axios.create({ baseURL: BASE_URL, validateStatus: () => true });
+const http = create({ baseURL: BASE_URL, validateStatus: () => true });
 
 function parseJsonResponse<T>(data: unknown, status: number, path: string): ApiResponse<T> | null {
   if (data === '' || data === undefined || data === null) return null;
@@ -23,7 +23,14 @@ async function post<T>(path: string, body: unknown, token?: string): Promise<T> 
     },
   });
   const json = parseJsonResponse<T>(res.data, res.status, path);
-  if (res.status < 200 || res.status >= 300) throw new Error(json?.message || 'Request failed');
+  if (res.status < 200 || res.status >= 300) {
+    const message = json?.message || 'Request failed';
+    // Giong web AuthForm: tai khoan bi vo hieu hoa (vd. hoc sinh da tot nghiep / chuyen truong).
+    if (/^\s*ACCOUNT_DEACTIVATED\s*:/.test(message)) {
+      throw new Error('Tài khoản đã bị vô hiệu hóa (ví dụ học sinh đã tốt nghiệp hoặc chuyển trường). Liên hệ nhà trường để được hỗ trợ.');
+    }
+    throw new Error(message.replace(/^\s*[A-Z][A-Z_]+[A-Z]\s*:\s*/, ''));
+  }
   return json?.data as T;
 }
 

@@ -5,16 +5,27 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useRouter } from 'expo-router';
 import {
   AlertCircle, ArrowLeft, BarChart3, Bell, Calendar, Camera, CheckCircle2, ChevronDown, ChevronUp, Clock, Crown,
-  Eye, EyeOff, KeyRound, Lock, LogOut, Mail, MapPin, Phone, Receipt, Save, Trophy, User, UserCircle, X,
+  Eye, EyeOff, KeyRound, Lock, LogOut, Mail, MapPin, MessageCircle, Phone, Receipt, Save, Trophy, User, UserCircle, X,
 } from 'lucide-react-native';
 import { useCallback, useEffect, useState } from 'react';
 import {
-  ActivityIndicator, Alert, KeyboardAvoidingView, Platform,
-  Pressable, RefreshControl, ScrollView, StyleSheet, Switch, TextInput, TouchableOpacity, View,
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { TextInput } from '@/components/ui/text-input';
 import { ConfirmModal } from '@/components/confirm-modal';
+import { SchoolQuotaCard } from '@/components/student/school-quota-card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Text } from '@/components/ui/text';
 import {
@@ -41,13 +52,14 @@ import { useChangePassword } from '@/features/auth/hooks/use-change-password';
 import { useMe } from '@/features/auth/hooks/use-me';
 import { useUpdateMe } from '@/features/auth/hooks/use-update-me';
 import { useUploadAvatar } from '@/features/auth/hooks/use-upload-avatar';
+import { ROLE_LABELS } from '@/features/auth/roles';
 import { useAuthStore } from '@/features/auth/store';
 import type { UpdateProfileInput } from '@/features/auth/types';
-import { notificationsApi } from '@/features/notifications/api';
+import { todayQuota, useStudentDashboard } from '@/features/classroom/hooks';
+import { useTogglePush } from '@/features/notifications/hooks/use-toggle-push';
 import { useTiers } from '@/features/payment/hooks/use-tiers';
 import {
   cancelDailyReminder,
-  getDevicePushTokenSafe,
   getPushPreference,
   getReminderTime,
   isDailyReminderScheduled,
@@ -55,12 +67,6 @@ import {
   setPushPreference,
   setReminderTime,
 } from '@/lib/notifications';
-
-const ROLE_LABEL: Record<string, string> = {
-  CUSTOMER:      'Người dùng',
-  CONTENT_ADMIN: 'Quản trị nội dung',
-  SYSTEM_ADMIN:  'Quản trị hệ thống',
-};
 
 const GENDER_OPTS = [
   { value: 'MALE',   label: 'Nam'  },
@@ -169,6 +175,8 @@ export default function ProfileScreen() {
 
   const { data: profile, isLoading, isError, refetch: refetchMe } = useMe();
   const { data: tiers, refetch: refetchTiers } = useTiers();
+  const isStudent = useAuthStore((st) => st.user?.role) === 'SCHOOL_STUDENT';
+  const studentQuota = todayQuota(useStudentDashboard().data);
 
   // Tab Profile thuong o lai mounted san (bottom tabs khong unmount khi
   // chuyen tab), nen sau khi mua goi o man /payment roi bam back lai day,
@@ -318,16 +326,15 @@ export default function ProfileScreen() {
     }
   }
 
+  const togglePush = useTogglePush();
+
   async function togglePushEnabled(next: boolean) {
     if (!profile) return;
     setNotifBusy('push');
     try {
       await setPushPreference(next);
-      const token = await getDevicePushTokenSafe();
-      if (token) {
-        if (next) await notificationsApi.registerDeviceToken(token, Platform.OS as 'android' | 'ios');
-        else await notificationsApi.removeDeviceToken(token);
-      } else if (next) {
+      const synced = await togglePush.mutateAsync(next);
+      if (!synced && next) {
         Alert.alert(
           'Không thể bật thông báo',
           'Hãy cấp quyền thông báo cho HistoryTalk trong Cài đặt máy, hoặc cần cài lại bản build mới hơn.',
@@ -463,15 +470,26 @@ export default function ProfileScreen() {
                 <Text style={s.heroName}>{profile.userName}</Text>
                 <Text style={s.heroEmail}>{profile.email}</Text>
                 <View style={s.roleBadge}>
-                  <Text style={s.roleBadgeText}>{ROLE_LABEL[profile.role] ?? profile.role}</Text>
+                  <Text style={s.roleBadgeText}>{ROLE_LABELS[profile.role] ?? profile.role}</Text>
                 </View>
               </View>
 
               {/* ── Token & join date stats ──────────────────────── */}
               <View style={s.statsRow}>
                 <View style={[s.statCard, { borderRightWidth: 1, borderRightColor: BORDER }]}>
-                  <Text style={s.statValue}>{(profile.token ?? 0).toLocaleString('vi-VN')}</Text>
-                  <Text style={s.statLabel}>Token còn lại</Text>
+                  {isStudent ? (
+                    <>
+                      <Text style={s.statValue}>
+                        {studentQuota ? studentQuota.remaining.toLocaleString('vi-VN') : '—'}
+                      </Text>
+                      <Text style={s.statLabel}>Token còn hôm nay</Text>
+                    </>
+                  ) : (
+                    <>
+                      <Text style={s.statValue}>{(profile.token ?? 0).toLocaleString('vi-VN')}</Text>
+                      <Text style={s.statLabel}>Token còn lại</Text>
+                    </>
+                  )}
                 </View>
                 <View style={s.statCard}>
                   <Text style={s.statValue}>{formatDate(profile.createdAt)}</Text>
@@ -479,7 +497,25 @@ export default function ProfileScreen() {
                 </View>
               </View>
 
-              {/* ── Subscription / payment ───────────────────────── */}
+              {/* ── Hoc sinh: han muc token cua truong (khong mua goi) ── */}
+              {isStudent ? (
+                <View style={{ gap: 10 }}>
+                  <SchoolQuotaCard showHistory />
+                  <TouchableOpacity onPress={() => router.push('/grades')} activeOpacity={0.8} style={s.historyBtn}>
+                    <BarChart3 size={16} color={TEXT2} strokeWidth={1.75} />
+                    <Text style={{ color: TEXT2, fontWeight: '600', fontSize: 14 }}>Bảng điểm</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => router.push('/quiz/history')} activeOpacity={0.8} style={s.historyBtn}>
+                    <Trophy size={16} color={TEXT2} strokeWidth={1.75} />
+                    <Text style={{ color: TEXT2, fontWeight: '600', fontSize: 14 }}>Lịch sử làm quiz</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => router.push('/chat/history')} activeOpacity={0.8} style={s.historyBtn}>
+                    <MessageCircle size={16} color={TEXT2} strokeWidth={1.75} />
+                    <Text style={{ color: TEXT2, fontWeight: '600', fontSize: 14 }}>Lịch sử trò chuyện</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+              /* ── Subscription / payment ───────────────────────── */
               <View style={s.section}>
                 <View style={s.sectionHeader}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -499,7 +535,7 @@ export default function ProfileScreen() {
                       flexDirection: 'row',
                       alignItems: 'center',
                       justifyContent: 'space-between',
-                      borderRadius: 14,
+                      borderRadius: 10,
                       paddingHorizontal: 14,
                       paddingVertical: 12,
                       marginTop: 8,
@@ -587,6 +623,7 @@ export default function ProfileScreen() {
                   </TouchableOpacity>
                 </View>
               </View>
+              )}
 
               {/* ── Personal info ────────────────────────────────── */}
               <View style={s.section}>
@@ -839,7 +876,7 @@ function ProfileSkeleton() {
       </View>
       <View style={{ marginHorizontal: 20, gap: 12 }}>
         {[0, 1, 2, 3].map((i) => (
-          <Skeleton key={i} style={{ height: 52, borderRadius: 14 }} />
+          <Skeleton key={i} style={{ height: 52, borderRadius: 10 }} />
         ))}
       </View>
     </View>
@@ -901,7 +938,7 @@ const s = StyleSheet.create({
 
   statsRow: {
     flexDirection: 'row', marginHorizontal: 20, marginBottom: 20,
-    backgroundColor: CARD, borderRadius: 18,
+    backgroundColor: CARD, borderRadius: 12,
     borderWidth: 1, borderColor: BORDER, overflow: 'hidden',
   },
   statCard: { flex: 1, alignItems: 'center', paddingVertical: 18 },
@@ -910,7 +947,7 @@ const s = StyleSheet.create({
 
   section: {
     marginHorizontal: 20, marginBottom: 16,
-    backgroundColor: CARD, borderRadius: 20,
+    backgroundColor: CARD, borderRadius: 12,
     borderWidth: 1, borderColor: BORDER, padding: 18,
   },
   sectionHeader: {
@@ -927,12 +964,12 @@ const s = StyleSheet.create({
 
   upgradeBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    backgroundColor: ORANGE, borderRadius: 14, paddingVertical: 13,
+    backgroundColor: ORANGE, borderRadius: 10, paddingVertical: 13,
   },
   historyBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
     backgroundColor: SURFACE, borderWidth: 1, borderColor: BORDER,
-    borderRadius: 14, paddingVertical: 13,
+    borderRadius: 10, paddingVertical: 13,
   },
 
   fieldRow: {
@@ -969,7 +1006,7 @@ const s = StyleSheet.create({
 
   saveBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    backgroundColor: ORANGE, borderRadius: 14,
+    backgroundColor: ORANGE, borderRadius: 10,
     paddingVertical: 14, marginTop: 4,
   },
 
@@ -982,7 +1019,7 @@ const s = StyleSheet.create({
   logoutBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
     borderWidth: 1, borderColor: 'rgba(239,68,68,0.35)',
-    borderRadius: 16, paddingVertical: 14,
+    borderRadius: 12, paddingVertical: 14,
     backgroundColor: 'rgba(239,68,68,0.06)',
   },
 });

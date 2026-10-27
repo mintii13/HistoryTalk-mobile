@@ -2,23 +2,27 @@ import '../global.css';
 
 import { useFonts } from 'expo-font';
 import { Slot } from 'expo-router';
-import { ActivityIndicator, View } from 'react-native';
+import { View } from 'react-native';
 
+import { LoginRequiredModal } from '@/components/login-required-modal';
+import { Mascot } from '@/components/mascot/mascot';
+import { PlatformLockModal } from '@/components/platform-lock-modal';
 import { SessionExpiredModal } from '@/components/session-expired-modal';
-import { BG, ORANGE } from '@/constants/palette';
+import { BG } from '@/constants/palette';
 import { FontAssets } from '@/constants/theme';
 import { AppProviders } from '@/providers/app-providers';
 import { useProtectedRoute } from '@/providers/use-protected-route';
 
 export default function RootLayout() {
-  useFonts(FontAssets);
+  // Cho font (Inter/Plus Jakarta/Big Shoulders) de chu khong nhay tu font he thong sang; loi tai font thi van vao app.
+  const [fontsLoaded, fontError] = useFonts(FontAssets);
   const { isLoading } = useProtectedRoute();
 
-  // Chờ load session từ SecureStore
-  if (isLoading) {
+  // Chờ load session từ SecureStore (mascot "đang nghĩ" giống trang loading bên web)
+  if (isLoading || (!fontsLoaded && !fontError)) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: BG }}>
-        <ActivityIndicator size="large" color={ORANGE} />
+        <Mascot mood="thinking" size={72} arms={false} label="Đang tải" />
       </View>
     );
   }
@@ -30,6 +34,8 @@ export default function RootLayout() {
     <AppProviders>
       <Slot />
       <SessionExpiredModal />
+      <PlatformLockModal />
+      <LoginRequiredModal />
     </AppProviders>
   );
 }

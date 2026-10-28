@@ -64,6 +64,22 @@ function firstFieldError(json: any): string | undefined {
   return Array.isArray(first) ? String(first[0] ?? '') || undefined : first ? String(first) : undefined;
 }
 
+// BE xoay vong refresh token (RTR): dung lai token cu se bi coi la reuse va huy ca phien.
+// Nhieu request 401 cung luc phai dung chung 1 luot refresh thay vi moi request tu refresh.
+let refreshInFlight: Promise<void> | null = null;
+
+function refreshSession(storedRefresh: string): Promise<void> {
+  if (!refreshInFlight) {
+    refreshInFlight = authApi
+      .refreshToken(storedRefresh)
+      .then((tokens) => useAuthStore.getState().updateTokens(tokens.accessToken, tokens.refreshToken))
+      .finally(() => {
+        refreshInFlight = null;
+      });
+  }
+  return refreshInFlight;
+}
+
 async function request(path: string, options: ApiClientOptions): Promise<any> {
   const { skipAuth = false, method = 'GET', body, headers } = options;
 
@@ -81,6 +97,7 @@ async function request(path: string, options: ApiClientOptions): Promise<any> {
     });
   };
 
+  const sentToken = useAuthStore.getState().accessToken;
   let res = await doRequest();
 
   // Khach (chua dang nhap) goi endpoint can token: bao can dang nhap, khong bao "het phien".
@@ -93,8 +110,8 @@ async function request(path: string, options: ApiClientOptions): Promise<any> {
     const storedRefresh = useAuthStore.getState().refreshToken;
     if (storedRefresh) {
       try {
-        const tokens = await authApi.refreshToken(storedRefresh);
-        useAuthStore.getState().updateTokens(tokens.accessToken, tokens.refreshToken);
+        // Request khac da refresh xong trong luc request nay dang bay → chi can goi lai voi token moi.
+        if (useAuthStore.getState().accessToken === sentToken) await refreshSession(storedRefresh);
         res = await doRequest();
       } catch {
         void useAuthStore.getState().logout('expired');

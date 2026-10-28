@@ -77,18 +77,4 @@ export const quizApi = {
     return { ...raw, questions };
   },
 
-  rate: (quizId: string, value: number) =>
-    apiClient<{ rating: number; ratingCount: number; myRating: number }>(`/quizzes/${quizId}/rating`, {
-      method: 'POST',
-      body: JSON.stringify({ value }),
-    }),
-
-  getMyRating: (quizId: string) =>
-    apiClient<{ myRating: number | null }>(`/quizzes/${quizId}/rating/me`),
-
-  reportQuestion: (questionId: string, reason?: string) =>
-    apiClient<null>(`/quizzes/questions/${questionId}/report`, {
-      method: 'POST',
-      body: JSON.stringify({ reason }),
-    }),
 };

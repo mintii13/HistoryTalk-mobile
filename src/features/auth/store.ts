@@ -143,7 +143,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   clearLogoutReason: () => set({ logoutReason: null }),
 
   logout: async (reason) => {
-    const { accessToken } = get();
+    const { accessToken, refreshToken } = get();
     if (accessToken) {
       // Go device token khoi backend truoc khi mat session — dynamic import
       // de tranh vong phu thuoc module (notifications/api.ts -> api-client.ts
@@ -157,7 +157,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         if (token) await notificationsApi.removeDeviceToken(token);
       } catch { /* ignore — best-effort */ }
 
-      try { await authApi.logout(accessToken); } catch { /* ignore */ }
+      try { await authApi.logout(accessToken, refreshToken); } catch { /* ignore */ }
     }
     await Promise.all(Object.values(KEYS).map((k) => SecureStore.deleteItemAsync(k)));
 

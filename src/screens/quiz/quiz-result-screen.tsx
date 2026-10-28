@@ -1,21 +1,17 @@
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { CheckCircle2, ChevronRight, Flag, MessageCircle, Minus, RotateCcw, Star, TrendingDown, TrendingUp, XCircle, Zap } from 'lucide-react-native';
+import { CheckCircle2, ChevronRight, MessageCircle, Minus, RotateCcw, TrendingDown, TrendingUp, XCircle, Zap } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Animated, Pressable, RefreshControl, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Animated, RefreshControl, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Mascot, type MascotMood } from '@/components/mascot/mascot';
-import { TextInput } from '@/components/ui/text-input';
 import { QuestionInput } from '@/components/quiz/question-input';
 import { Text } from '@/components/ui/text';
 import { BG, BORDER, CARD, GREEN, MUTED, ORANGE, ORANGE_BORDER_STRONG, ORANGE_TINT, ORANGE_TINT_FAINT, RED, SURFACE, TEXT, TEXT2, TEXT_TINT_FAINT } from '@/constants/palette';
 import { useCharactersByContext } from '@/features/characters/hooks/use-characters-by-context';
 import { getCharacterImageUri } from '@/features/characters/types';
-import { useMyRating } from '@/features/quiz/hooks/use-my-rating';
 import { useQuizResultDetail } from '@/features/quiz/hooks/use-quiz-result-detail';
-import { useRateQuiz } from '@/features/quiz/hooks/use-rate-quiz';
-import { useReportQuestion } from '@/features/quiz/hooks/use-report-question';
 import { useStartQuiz } from '@/features/quiz/hooks/use-start-quiz';
 import {
   describeCorrectAnswer,
@@ -176,98 +172,6 @@ function RecommendCharacters({ contextId, wrongCount }: { contextId: string; wro
   );
 }
 
-// Cho phep nguoi dung danh gia quiz (1-5 sao) ngay sau khi xem ket qua, de
-// tinh nang rating trung binh (Quiz.rating/ratingCount) co du lieu thuc.
-function RateQuizCard({ quizId }: { quizId: string }) {
-  const { data: myRatingData } = useMyRating(quizId);
-  const { mutate: rate, isPending } = useRateQuiz(quizId);
-  const [localValue, setLocalValue] = useState<number | null>(null);
-  const [justRated, setJustRated] = useState(false);
-
-  const value = localValue ?? myRatingData?.myRating ?? 0;
-
-  function handlePress(star: number) {
-    setLocalValue(star);
-    setJustRated(false);
-    rate(star, { onSuccess: () => setJustRated(true) });
-  }
-
-  return (
-    <View style={ss.rateSection}>
-      <Text style={ss.rateTitle}>Bạn thấy quiz này thế nào?</Text>
-      <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
-        {[1, 2, 3, 4, 5].map((star) => (
-          <TouchableOpacity
-            key={star}
-            onPress={() => handlePress(star)}
-            disabled={isPending}
-            hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
-          >
-            <Star
-              size={28}
-              color={star <= value ? ORANGE : BORDER}
-              fill={star <= value ? ORANGE : 'transparent'}
-              strokeWidth={1.5}
-            />
-          </TouchableOpacity>
-        ))}
-      </View>
-      {justRated && <Text style={ss.rateThanks}>Cảm ơn bạn đã đánh giá!</Text>}
-    </View>
-  );
-}
-
-// Cho phep nguoi dung mo ta ngan gon van de gap phai truoc khi gui report —
-// giup staff hieu ro hon la chi biet "co report" ma khong ro ly do.
-function ReportQuestionDialog({
-  visible,
-  onCancel,
-  onSubmit,
-}: {
-  visible: boolean;
-  onCancel: () => void;
-  onSubmit: (reason: string) => void;
-}) {
-  const [text, setText] = useState('');
-
-  if (!visible) return null;
-
-  function submit() {
-    onSubmit(text.trim());
-    setText('');
-  }
-
-  return (
-    <View style={ss.reportOverlay}>
-      <Pressable style={ss.reportBackdrop} onPress={onCancel} />
-      <View style={ss.reportCard}>
-        <Text style={ss.reportTitle}>Câu này có vấn đề?</Text>
-        <Text style={ss.reportSubtitle}>
-          Mô tả ngắn gọn vấn đề bạn gặp phải để đội ngũ hỗ trợ xem lại chính xác hơn (không bắt buộc).
-        </Text>
-        <TextInput
-          value={text}
-          onChangeText={setText}
-          placeholder="Ví dụ: đáp án đúng đang bị sai, câu hỏi khó hiểu..."
-          placeholderTextColor={MUTED}
-          multiline
-          numberOfLines={4}
-          textAlignVertical="top"
-          style={ss.reportInput}
-        />
-        <View style={ss.reportActions}>
-          <TouchableOpacity onPress={onCancel} style={ss.reportCancelBtn}>
-            <Text style={{ color: MUTED, fontWeight: '700' }}>Huỷ</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={submit} style={ss.reportSubmitBtn}>
-            <Text style={{ color: '#fff', fontWeight: '800' }}>Gửi báo cáo</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </View>
-  );
-}
-
 export default function QuizResultScreen() {
   const { sessionId } = useLocalSearchParams<{ sessionId?: string }>();
   const router = useRouter();
@@ -276,27 +180,6 @@ export default function QuizResultScreen() {
   const clearAll = useQuizStore((s) => s.clearAll);
   const { mutateAsync: startQuiz, isPending: retrying } = useStartQuiz();
   const [reviewFilter, setReviewFilter] = useState<'all' | 'wrong'>('all');
-  const { mutate: reportQuestion } = useReportQuestion();
-  const [reportedIds, setReportedIds] = useState<Set<string>>(new Set());
-
-  const [reportTarget, setReportTarget] = useState<string | null>(null);
-
-  function handleReportPress(questionId: string) {
-    if (reportedIds.has(questionId)) return;
-    setReportTarget(questionId);
-  }
-
-  function submitReport(reason: string) {
-    const questionId = reportTarget;
-    if (!questionId) return;
-    setReportTarget(null);
-    setReportedIds((prev) => new Set(prev).add(questionId));
-    reportQuestion(
-      { questionId, reason: reason || undefined },
-      { onError: () => setReportedIds((prev) => { const next = new Set(prev); next.delete(questionId); return next; }) },
-    );
-  }
-
   const { data: detailData, isLoading, refetch, isRefetching } = useQuizResultDetail(sessionId);
 
   const finished = sessionId && detailData
@@ -425,12 +308,6 @@ export default function QuizResultScreen() {
           )}
         </View>
 
-        {finished.quizId ? (
-          <View style={{ paddingHorizontal: 20 }}>
-            <RateQuizCard quizId={finished.quizId} />
-          </View>
-        ) : null}
-
         {wrongCount > 0 && finished.contextId ? (
           <View style={{ paddingHorizontal: 20 }}>
             <RecommendCharacters contextId={finished.contextId} wrongCount={wrongCount} />
@@ -518,18 +395,6 @@ export default function QuizResultScreen() {
                   </View>
                 )}
 
-                {/* Bao loi cau hoi cho staff */}
-                <TouchableOpacity
-                  onPress={() => handleReportPress(q.questionId)}
-                  disabled={reportedIds.has(q.questionId)}
-                  activeOpacity={0.7}
-                  style={ss.reportBtn}
-                >
-                  <Flag size={13} color={reportedIds.has(q.questionId) ? GREEN : MUTED} strokeWidth={2} />
-                  <Text style={[ss.reportBtnText, reportedIds.has(q.questionId) && { color: GREEN }]}>
-                    {reportedIds.has(q.questionId) ? 'Đã gửi báo cáo, cảm ơn bạn!' : 'Câu này có vấn đề?'}
-                  </Text>
-                </TouchableOpacity>
               </View>
             );
           })}
@@ -564,60 +429,11 @@ export default function QuizResultScreen() {
         </TouchableOpacity>
       </View>
 
-      <ReportQuestionDialog
-        visible={!!reportTarget}
-        onCancel={() => setReportTarget(null)}
-        onSubmit={submitReport}
-      />
     </SafeAreaView>
   );
 }
 
 const ss = StyleSheet.create({
-  reportOverlay: {
-    position: 'absolute',
-    top: 0, left: 0, right: 0, bottom: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 1000,
-    elevation: 20,
-  },
-  reportBackdrop: {
-    position: 'absolute',
-    top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: 'rgba(43,33,24,0.45)',
-  },
-  reportCard: {
-    width: '88%',
-    maxWidth: 400,
-    backgroundColor: CARD,
-    borderRadius: 12,
-    padding: 22,
-    borderWidth: 1,
-    borderColor: BORDER,
-  },
-  reportTitle: { color: TEXT, fontSize: 16, fontWeight: '800', marginBottom: 6 },
-  reportSubtitle: { color: TEXT2, fontSize: 13, lineHeight: 19, marginBottom: 14 },
-  reportInput: {
-    borderWidth: 1,
-    borderColor: BORDER,
-    borderRadius: 12,
-    padding: 12,
-    minHeight: 90,
-    color: TEXT,
-    fontSize: 14,
-    backgroundColor: SURFACE,
-    marginBottom: 16,
-  },
-  reportActions: { flexDirection: 'row', gap: 10 },
-  reportCancelBtn: {
-    flex: 1, paddingVertical: 12, borderRadius: 12,
-    backgroundColor: 'rgba(43,33,24,0.06)', alignItems: 'center',
-  },
-  reportSubmitBtn: {
-    flex: 1, paddingVertical: 12, borderRadius: 12,
-    backgroundColor: ORANGE, alignItems: 'center',
-  },
   hero: {
     alignItems: 'center',
     padding: 24,
@@ -861,40 +677,6 @@ const ss = StyleSheet.create({
     borderRadius: 12,
     borderLeftWidth: 4,
     borderLeftColor: ORANGE,
-  },
-
-  reportBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 14,
-    alignSelf: 'flex-start',
-  },
-  reportBtnText: {
-    color: MUTED,
-    fontSize: 12,
-    fontWeight: '600',
-  },
-
-  rateSection: {
-    backgroundColor: CARD,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: BORDER,
-    padding: 16,
-    marginBottom: 24,
-    alignItems: 'center',
-  },
-  rateTitle: {
-    color: TEXT,
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  rateThanks: {
-    color: GREEN,
-    fontSize: 12,
-    fontWeight: '600',
-    marginTop: 10,
   },
 
   recommendSection: {

@@ -23,8 +23,11 @@ export const unsupportedRoleMessage = (role: string | undefined | null) =>
   `Tài khoản ${ROLE_LABELS[role as UserRole] ?? role ?? ''} chỉ dùng được trên website HistoryTalk. App mobile dành cho người học và học sinh.`;
 
 /** Goi trong mutationFn dang nhap: chan role khong dung app mobile truoc khi luu phien. */
-export async function assertMobileRole(data: AuthResponse, logout: (token: string) => Promise<unknown>) {
+export async function assertMobileRole(
+  data: AuthResponse,
+  logout: (token: string, refreshToken?: string) => Promise<unknown>,
+) {
   if (isMobileRole(data.role)) return data;
-  try { await logout(data.accessToken); } catch { /* best-effort */ }
+  try { await logout(data.accessToken, data.refreshToken); } catch { /* best-effort */ }
   throw new Error(unsupportedRoleMessage(data.role));
 }

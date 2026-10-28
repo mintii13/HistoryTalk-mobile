@@ -47,8 +47,9 @@ export const authApi = {
   refreshToken: (refreshToken: string) =>
     post<RefreshTokenResponse>('/auth/refresh-token', { refreshToken }),
 
-  logout: (accessToken: string) =>
-    post<null>('/auth/logout', {}, accessToken),
+  // Gui kem refresh token de BE thu hoi no (khong thi token van song toi khi het han).
+  logout: (accessToken: string, refreshToken?: string | null) =>
+    post<null>('/auth/logout', refreshToken ? { refreshToken } : {}, accessToken),
 
   forgotPassword: (email: string) =>
     post<null>('/auth/forgot-password', { email }),

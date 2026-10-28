@@ -171,12 +171,19 @@ function CustomerHomeScreen() {
               style={{ width: 28, height: 28 }}
               contentFit="contain"
             />
-            <View>
-              <Text style={{ fontSize: 11, color: TEXT2 }}>{greeting()}</Text>
+            {/* Khach: ten app thay cho loi chao ("Chao buoi sang, Ban" trong nhu da dang nhap). */}
+            {isAuthenticated ? (
+              <View>
+                <Text style={{ fontSize: 11, color: TEXT2 }}>{greeting()}</Text>
+                <Heading size="md" className="text-history-text">
+                  {user?.userName ?? "Bạn"}
+                </Heading>
+              </View>
+            ) : (
               <Heading size="md" className="text-history-text">
-                {user?.userName ?? "Bạn"}
+                HistoryTalk
               </Heading>
-            </View>
+            )}
           </View>
           {!isAuthenticated ? (
             <TouchableOpacity

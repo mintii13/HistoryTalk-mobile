@@ -12,6 +12,7 @@ interface QuickAction {
   icon: LucideIcon;
 }
 
+// Hang chip mong (khong phai o lon): nguoi dung luot nhieu hon bam, khong chiem cho cua noi dung ben duoi.
 // Nhung muc menu web co ma thanh tab mobile khong chua het (ban do, lich su chat, tien do).
 const SIGNED_IN: QuickAction[] = [
   { label: 'Bản đồ', href: '/map', icon: MapIcon },
@@ -35,7 +36,7 @@ export function QuickActions({ signedIn }: { signedIn: boolean }) {
           style={({ pressed }) => [s.tile, pressed && s.tilePressed]}
           accessibilityRole="link"
         >
-          <Icon size={20} color={ORANGE} strokeWidth={1.8} />
+          <Icon size={15} color={ORANGE} strokeWidth={2} />
           <Text style={s.label} numberOfLines={1}>
             {label}
           </Text>
@@ -46,14 +47,14 @@ export function QuickActions({ signedIn }: { signedIn: boolean }) {
 }
 
 const s = StyleSheet.create({
-  row: { flexDirection: 'row', gap: 10, marginHorizontal: 20, marginBottom: 24 },
+  row: { flexDirection: 'row', gap: 8, marginHorizontal: 20, marginBottom: 20 },
   tile: {
-    flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    paddingVertical: 14,
-    paddingHorizontal: 6,
-    borderRadius: 10,
+    gap: 6,
+    height: 36,
+    paddingHorizontal: 12,
+    borderRadius: 999,
     borderWidth: 1,
     borderColor: ARCHIVE.hairline,
     backgroundColor: CARD,

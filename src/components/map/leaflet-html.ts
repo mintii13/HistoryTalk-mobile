@@ -211,11 +211,11 @@ const SCRIPT = String.raw`
 
 const CSS = `
 html, body, #map { margin: 0; padding: 0; width: 100%; height: 100%; background: ${BG}; }
-body { font-family: -apple-system, Roboto, "Segoe UI", sans-serif; -webkit-tap-highlight-color: transparent; }
-.leaflet-container { background: ${BG}; }
+body { font-family: Inter, -apple-system, Roboto, "Segoe UI", Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
+.leaflet-container { background: ${BG}; font-family: Inter, -apple-system, Roboto, "Segoe UI", Arial, sans-serif; }
 .leaflet-control-attribution { font-size: 9px; }
 .label-wrap, .province-wrap, .battle-wrap, .note-wrap { background: none; border: 0; }
-.label { color: #111; font-size: 13px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; text-align: center;
+.label { font-family: inherit; color: #111; font-size: 13px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; text-align: center;
   text-shadow: 0 1px 0 rgba(245,242,234,.9), 0 0 6px rgba(245,242,234,.7); }
 .label.country { color: #9A2A18; font-size: 20px; letter-spacing: .12em; }
 .label.region { color: rgba(17,17,17,.46); font-size: 12px; font-weight: 700; letter-spacing: .12em; }
@@ -248,6 +248,7 @@ export const LEAFLET_HTML = `<!doctype html>
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&display=swap" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet@${LEAFLET_VERSION}/dist/leaflet.css" />
 <style>${CSS}</style>
 </head>

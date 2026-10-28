@@ -15,7 +15,7 @@ import { ChipScroller, PageHeading } from '@/components/archive';
 import { HeaderIconButton } from '@/components/screen-header';
 import { useAuthStore } from '@/features/auth/store';
 import { TextInput } from '@/components/ui/text-input';
-import { CharacterCard, CHAR_CARD_LG_WIDTH, CHAR_CARD_LG_HEIGHT } from '@/components/cards';
+import { CharacterCard, useCharCardSize } from '@/components/cards';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Text } from '@/components/ui/text';
 import {
@@ -35,8 +35,6 @@ import {
 } from '@/features/characters/types';
 
 // ─── Layout constants ─────────────────────────────────────────────────────────
-const CARD_WIDTH  = CHAR_CARD_LG_WIDTH;
-const CARD_HEIGHT = CHAR_CARD_LG_HEIGHT;
 const H_PADDING   = 20;
 const COL_GAP     = 12;
 
@@ -223,6 +221,7 @@ function ListHeader({
 
 // ─── Skeleton loading grid ────────────────────────────────────────────────────
 function SkeletonGrid() {
+  const { width: CARD_WIDTH, height: CARD_HEIGHT } = useCharCardSize();
   return (
     <View style={{ paddingHorizontal: H_PADDING }}>
       {[0, 1, 2].map((row) => (
@@ -242,6 +241,7 @@ function SkeletonGrid() {
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 export default function CharactersScreen() {
+  const { width: CARD_WIDTH } = useCharCardSize();
   const router  = useRouter();
   const [search, setSearch]             = useState('');
   const [debouncedSearch, setDebounced] = useState('');

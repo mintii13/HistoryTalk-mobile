@@ -130,7 +130,8 @@ const s = StyleSheet.create({
   display: {
     fontFamily: AppFonts.displayBlack,
     color: TEXT,
-    letterSpacing: 0.3,
+    // Big Shoulders rat hep: can gian chu ro de chu hoa khong dinh nhau tren man nho.
+    letterSpacing: 1,
   },
   rule: { height: StyleSheet.hairlineWidth, backgroundColor: TEXT, opacity: 0.85 },
   fade: { position: 'absolute', top: 0, bottom: 0, right: 0, width: 28 },

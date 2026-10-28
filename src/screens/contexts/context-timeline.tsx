@@ -4,11 +4,11 @@ import { ChevronLeft, ChevronRight, MapPin } from 'lucide-react-native';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated as RNAnimated,
-  Dimensions,
   type FlatList,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from 'react-native';
 
@@ -38,10 +38,7 @@ import {
 const STRIP_ITEM_W = 76;
 const STRIP_H = 64;
 
-const SCREEN_W = Dimensions.get('window').width;
-const CARD_W = SCREEN_W - 64; // card kế bên ló ~22px mỗi mép
 const CARD_GAP = 12;
-const SNAP = CARD_W + CARD_GAP;
 
 function shortYearLabel(ctx: HistoricalContext): string {
   if (ctx.yearLabel) return ctx.yearLabel;
@@ -66,6 +63,10 @@ export function ContextTimeline({
   onNearEnd?: () => void;
 }) {
   const router = useRouter();
+  // Theo kích thước hiện tại (không chốt lúc nạp module): xoay máy / đổi cỡ cửa sổ web vẫn vừa.
+  const { width: screenW } = useWindowDimensions();
+  const CARD_W = screenW - 64; // card kế bên ló ~22px mỗi mép
+  const SNAP = CARD_W + CARD_GAP;
   const events = useMemo(
     () => [...contexts].sort((a, b) => sortYear(a) - sortYear(b)),
     [contexts],
@@ -217,7 +218,7 @@ export function ContextTimeline({
         decelerationRate="fast"
         bounces={false}
         style={{ marginTop: 14 }}
-        contentContainerStyle={{ paddingHorizontal: (SCREEN_W - CARD_W) / 2 }}
+        contentContainerStyle={{ paddingHorizontal: (screenW - CARD_W) / 2 }}
         ItemSeparatorComponent={() => <View style={{ width: CARD_GAP }} />}
         onScroll={RNAnimated.event(
           [{ nativeEvent: { contentOffset: { x: scrollX } } }],

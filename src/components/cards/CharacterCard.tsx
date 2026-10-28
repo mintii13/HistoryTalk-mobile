@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Dimensions, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 
 import { RawText as Text } from '@/components/ui/text';
 
@@ -22,11 +22,15 @@ export const ERA_CARD_BG: Record<CharacterEra, string> = {
 };
 
 // ─── Layout constants for 'lg' size ──────────────────────────────────────────
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const H_PADDING = 20;
 const COL_GAP = 12;
-export const CHAR_CARD_LG_WIDTH = (SCREEN_WIDTH - H_PADDING * 2 - COL_GAP) / 2;
-export const CHAR_CARD_LG_HEIGHT = Math.round(CHAR_CARD_LG_WIDTH * (4 / 3));
+
+/** Kich thuoc the luoi 2 cot theo be rong hien tai (khong chot luc nap module: xoay may / doi co cua so web van vua). */
+export function useCharCardSize() {
+  const { width } = useWindowDimensions();
+  const cardWidth = (width - H_PADDING * 2 - COL_GAP) / 2;
+  return { width: cardWidth, height: Math.round(cardWidth * (4 / 3)) };
+}
 
 // ─── Sizes ────────────────────────────────────────────────────────────────────
 const SM_WIDTH = 100;
@@ -130,13 +134,14 @@ function LargeCard({
   cardBg: string;
   imageUri?: string;
 }) {
+  const size = useCharCardSize();
   return (
     <TouchableOpacity
       onPress={onPress}
       activeOpacity={0.84}
       style={[
         lgStyles.card,
-        { backgroundColor: cardBg, width: CHAR_CARD_LG_WIDTH, height: CHAR_CARD_LG_HEIGHT },
+        { backgroundColor: cardBg, width: size.width, height: size.height },
       ]}
     >
       {/* Photo or placeholder */}
@@ -286,7 +291,7 @@ const lgStyles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    height: Math.round(CHAR_CARD_LG_HEIGHT * 0.58),
+    height: '58%',
     borderBottomLeftRadius: 12,
     borderBottomRightRadius: 12,
   },

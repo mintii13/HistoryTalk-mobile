@@ -653,6 +653,24 @@ const MessageBubble = memo(function MessageBubble({
 export default function ChatScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+
+  // Android (edge-to-edge): KeyboardAvoidingView hay giu lai padding sau khi
+  // tat ban phim -> input bi nhay len. Tu theo doi chieu cao ban phim thay vi
+  // dung KAV. keyboardDidShow tra ve chieu cao KHONG gom nav bar, nen cong
+  // them insets.bottom o spacer ben duoi.
+  const [androidKeyboardHeight, setAndroidKeyboardHeight] = useState(0);
+  useEffect(() => {
+    if (Platform.OS !== "android") return;
+    const showSub = Keyboard.addListener("keyboardDidShow", (e) =>
+      setAndroidKeyboardHeight(e.endCoordinates.height),
+    );
+    const hideSub = Keyboard.addListener("keyboardDidHide", () => setAndroidKeyboardHeight(0));
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
   const params = useLocalSearchParams<{
     sessionId: string;
     characterId?: string;
@@ -1340,7 +1358,7 @@ export default function ChatScreen() {
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior="padding"
-        enabled={true}
+        enabled={Platform.OS === "ios"}
         keyboardVerticalOffset={0}
       >
         <View style={s.header}>
@@ -1705,7 +1723,11 @@ export default function ChatScreen() {
           </TouchableOpacity>
         </View>
 
-        <View style={{ height: Platform.OS === "ios" ? insets.bottom : 8 }} />
+        <View
+          style={{
+            height: Platform.OS === "ios" ? insets.bottom : insets.bottom + androidKeyboardHeight + 8,
+          }}
+        />
       </KeyboardAvoidingView>
 
       {isStudent ? <TokenBoostModal visible={boostOpen} onClose={() => setBoostOpen(false)} /> : null}

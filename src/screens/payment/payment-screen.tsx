@@ -35,8 +35,16 @@ import { useCreateOrder } from '@/features/payment/hooks/use-create-order';
 import { useMyOrders } from '@/features/payment/hooks/use-my-orders';
 import { useNotifyPayosReturn } from '@/features/payment/hooks/use-notify-payos-return';
 import { useTiers } from '@/features/payment/hooks/use-tiers';
+import {
+  formatVnd,
+  groupThousands,
+  groupTierPlans,
+  hasYearlyPlans,
+  tierForCycle,
+  yearlySavingPercent,
+  type BillingCycle,
+} from '@/features/payment/tier-plans';
 import type { OrderStatus, Tier } from '@/features/payment/types';
-import { formatCurrency } from '@/lib/format';
 
 // Phai khop scheme "mobilehistorytalk" dang ky trong app.json — BE dung gia
 // tri nay lam returnUrl/cancelUrl khi tao PayOS checkout link (platform: 'mobile').
@@ -78,8 +86,11 @@ export default function PaymentScreen() {
 
   const [loadingTierId, setLoadingTierId] = useState<string | null>(null);
   const [resultStatus, setResultStatus] = useState<OrderStatus | null>(null);
+  const [cycle, setCycle] = useState<BillingCycle>('month');
 
-  const activeTiers = (tiers ?? []).filter((t) => t.isActive).sort((a, b) => a.amount - b.amount);
+  const plans = groupTierPlans(tiers ?? []);
+  const showCycleToggle = hasYearlyPlans(plans);
+  const maxSaving = Math.max(0, ...plans.map((p) => yearlySavingPercent(p) ?? 0));
 
   // openAuthSessionAsync mo checkout trong trinh duyet trong app va tu dong
   // dong + resolve ngay khi PayOS redirect ve PAYOS_REDIRECT_URL (deep link
@@ -173,36 +184,66 @@ export default function PaymentScreen() {
           </View>
         )}
 
+        {showCycleToggle && (
+          <View style={s.cycleToggle} accessibilityRole="radiogroup">
+            {([
+              ['month', 'Theo tháng'],
+              ['year', maxSaving > 0 ? `Theo năm · -${maxSaving}%` : 'Theo năm'],
+            ] as const).map(([value, label]) => {
+              const active = cycle === value;
+              return (
+                <TouchableOpacity
+                  key={value}
+                  accessibilityRole="radio"
+                  accessibilityState={{ checked: active }}
+                  onPress={() => setCycle(value)}
+                  activeOpacity={0.85}
+                  style={[s.cycleOption, active && s.cycleOptionActive]}
+                >
+                  <Text style={{ color: active ? '#fff' : TEXT2, fontWeight: '700', fontSize: 13 }}>{label}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        )}
+
         <View style={{ paddingHorizontal: 20, gap: 14 }}>
-          {activeTiers.map((tier, index) => {
-            const isFree = tier.amount === 0;
-            const isCurrent = profile?.tierId === tier.tierId;
-            const isFeatured = index === activeTiers.length - 1 && !isFree;
+          {plans.map((plan, index) => {
+            const tier = tierForCycle(plan, cycle)!;
+            const isFree = plan.isFree;
+            const isYearly = tier.noMonth >= 12;
+            const saving = isYearly ? yearlySavingPercent(plan) : null;
+            // The account's subscription may be either the monthly or the yearly row of this plan.
+            const isCurrent = !!profile?.tierId
+              && (profile.tierId === plan.monthly?.tierId || profile.tierId === plan.yearly?.tierId);
+            const isFeatured = index === plans.length - 1 && !isFree;
             const isBusy = loadingTierId === tier.tierId;
 
             return (
-              <View key={tier.tierId} style={[s.tierCard, isFeatured && s.tierCardFeatured]}>
+              <View key={plan.key} style={[s.tierCard, isFeatured && s.tierCardFeatured]}>
                 <View style={s.tierHead}>
                   <Crown size={18} color={isFeatured ? ORANGE : MUTED} strokeWidth={2} />
                   <View style={{ flex: 1 }}>
-                    <Text style={s.tierTitle}>{tier.title}</Text>
-                    <Text style={s.tierSub}>{tier.noMonth} tháng sử dụng</Text>
+                    <Text style={s.tierTitle}>{plan.title}</Text>
+                    <Text style={s.tierSub}>
+                      {isFree ? 'Miễn phí' : saving ? `Tiết kiệm ${saving}% so với trả theo tháng` : `${tier.noMonth} tháng sử dụng`}
+                    </Text>
                   </View>
                 </View>
 
                 <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6, marginTop: 14 }}>
-                  <Text style={s.tierPrice}>{isFree ? 'Miễn phí' : formatCurrency(tier.amount)}</Text>
-                  {!isFree && <Text style={s.tierPriceUnit}>/{tier.noMonth} tháng</Text>}
+                  <Text style={s.tierPrice}>{formatVnd(tier.amount)}</Text>
+                  {!isFree && <Text style={s.tierPriceUnit}>{isYearly ? '/năm' : '/tháng'}</Text>}
                 </View>
 
                 <View style={{ marginTop: 16, gap: 8 }}>
                   <View style={s.featureRow}>
                     {isFeatured ? <Sparkles size={14} color={ORANGE} /> : <Check size={14} color={MUTED} />}
-                    <Text style={s.featureText}>Token AI: {tier.limitedToken.toLocaleString('vi-VN')}</Text>
+                    <Text style={s.featureText}>Token AI: {groupThousands(plan.dailyTokens)}/ngày</Text>
                   </View>
                   <View style={s.featureRow}>
                     {isFeatured ? <Sparkles size={14} color={ORANGE} /> : <Check size={14} color={MUTED} />}
-                    <Text style={s.featureText}>{tierFeatureSummary(tier.title)}</Text>
+                    <Text style={s.featureText}>{tierFeatureSummary(plan.key)}</Text>
                   </View>
                 </View>
 
@@ -251,6 +292,13 @@ const s = StyleSheet.create({
     marginHorizontal: 20, marginTop: 16, padding: 14,
     borderRadius: 10, borderWidth: 1, backgroundColor: CARD,
   },
+
+  cycleToggle: {
+    flexDirection: 'row', alignSelf: 'center', marginBottom: 16, padding: 3,
+    borderRadius: 10, borderWidth: 1, borderColor: BORDER, backgroundColor: CARD,
+  },
+  cycleOption: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 8 },
+  cycleOptionActive: { backgroundColor: ORANGE },
 
   tierCard: {
     backgroundColor: CARD, borderRadius: 12, borderWidth: 1, borderColor: BORDER, padding: 18,

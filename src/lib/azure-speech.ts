@@ -2,6 +2,8 @@ import axios from 'axios';
 import { File, Paths } from 'expo-file-system';
 import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from 'expo-audio';
 
+import { sanitizeForSpeech } from '@/lib/markdown-images';
+
 const AZURE_SPEECH_KEY = process.env.EXPO_PUBLIC_AZURE_SPEECH_KEY;
 const AZURE_SPEECH_REGION = process.env.EXPO_PUBLIC_AZURE_SPEECH_REGION;
 const AZURE_SPEECH_VOICE = process.env.EXPO_PUBLIC_AZURE_SPEECH_VOICE ?? 'vi-VN-NamMinhNeural';
@@ -57,7 +59,8 @@ export async function speakWithAzure(text: string): Promise<AudioPlayer> {
     audioModeReady = true;
   }
 
-  const buffer = await synthesizeSpeech(text);
+  // Tin nhan chi co anh thi van doc 1 cau ngan: cac man hinh goi dang cho player phat xong.
+  const buffer = await synthesizeSpeech(sanitizeForSpeech(text) || 'Mời bạn xem hình ảnh.');
   const file = new File(Paths.cache, `tts-${Date.now()}.mp3`);
   file.create();
   file.write(new Uint8Array(buffer));

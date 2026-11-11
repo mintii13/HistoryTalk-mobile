@@ -1,8 +1,10 @@
-import React from "react";
+import { Image } from "expo-image";
+import React, { useState } from "react";
 import { Linking, TextStyle, View } from "react-native";
 
 import { RawText as Text } from "@/components/ui/text";
 import { MUTED, ORANGE, TEXT } from "@/constants/palette";
+import { isolateMarkdownImages, resolveMarkdownImageUrl } from "@/lib/markdown-images";
 
 interface FormattedMarkdownProps {
   content: string;
@@ -104,10 +106,39 @@ function renderInlineText(text: string, baseStyle?: TextStyle) {
   });
 }
 
+function MarkdownImage({ url, alt, baseStyle }: { url: string; alt: string; baseStyle?: TextStyle }) {
+  const [aspectRatio, setAspectRatio] = useState(4 / 3);
+  const [failed, setFailed] = useState(false);
+  const uri = resolveMarkdownImageUrl(url);
+  const captionStyle = [baseStyle, { fontSize: 12, fontStyle: "italic" as const, color: MUTED, marginTop: 4 }];
+
+  if (!uri || failed) {
+    return alt ? <Text style={captionStyle}>{alt}</Text> : null;
+  }
+
+  return (
+    <View style={{ marginVertical: 6 }}>
+      <Image
+        source={{ uri }}
+        alt={alt || "Ảnh tư liệu lịch sử"}
+        contentFit="contain"
+        transition={150}
+        style={{ width: "100%", aspectRatio, maxHeight: 260, borderRadius: 8, backgroundColor: "rgba(0, 0, 0, 0.05)" }}
+        onLoad={(event) => {
+          const { width, height } = event.source;
+          if (width > 0 && height > 0) setAspectRatio(width / height);
+        }}
+        onError={() => setFailed(true)}
+      />
+      {alt ? <Text style={captionStyle}>{alt}</Text> : null}
+    </View>
+  );
+}
+
 export function FormattedMarkdown({ content, baseStyle }: FormattedMarkdownProps) {
   if (!content) return null;
 
-  const lines = content.split("\n");
+  const lines = isolateMarkdownImages(content).split("\n");
   const elements: React.ReactNode[] = [];
   let inCodeBlock = false;
   let codeBlockBuffer: string[] = [];
@@ -150,6 +181,14 @@ export function FormattedMarkdown({ content, baseStyle }: FormattedMarkdownProps
     const trimmed = line.trim();
     if (!trimmed) {
       elements.push(<View key={`space-${i}`} style={{ height: 4 }} />);
+      continue;
+    }
+
+    const imageMatch = trimmed.match(/^!\[([^\]]*)\]\(([^)]*)\)$/);
+    if (imageMatch) {
+      elements.push(
+        <MarkdownImage key={`image-${i}`} url={imageMatch[2]} alt={imageMatch[1].trim()} baseStyle={baseStyle} />
+      );
       continue;
     }
 

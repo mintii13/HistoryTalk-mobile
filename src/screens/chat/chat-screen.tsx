@@ -430,6 +430,16 @@ const VoiceCallCard = memo(function VoiceCallCard({
                 </Text>
                 {displayParts.map((part, i) => {
                   const isFollowup = m.role === "ASSISTANT" && displayParts.length > 1 && i === displayParts.length - 1;
+                  if (m.role === "ASSISTANT") {
+                    return (
+                      <View key={i} style={i > 0 ? { marginTop: 4 } : undefined}>
+                        <FormattedMarkdown
+                          content={part}
+                          baseStyle={StyleSheet.flatten([s.callTranscriptText, isFollowup && s.callTranscriptFollowup])}
+                        />
+                      </View>
+                    );
+                  }
                   return (
                     <Text
                       key={i}
@@ -492,7 +502,7 @@ function MessageQuotes({
         <View style={s.quotesBox}>
           {quotes.map((quote, i) => (
             <View key={i} style={i > 0 ? { marginTop: 10 } : undefined}>
-              <Text style={s.quoteText}>{quote}</Text>
+              <FormattedMarkdown content={quote} baseStyle={s.quoteText} />
               <TouchableOpacity
                 onPress={() => handleViewQuote(quote)}
                 activeOpacity={0.7}

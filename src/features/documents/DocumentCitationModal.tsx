@@ -14,6 +14,7 @@ import {
   SURFACE,
   TEXT,
 } from "@/constants/palette";
+import { stripMarkdownImages } from "@/lib/markdown-images";
 
 import { usePublicCharacterDocuments, usePublicContextsDocuments } from "./hooks";
 import { findDocumentForQuote, splitContentByQuote, type QuoteTextPart } from "./quote-match";
@@ -180,7 +181,11 @@ export function DocumentCitationModal({
               </View>
             ) : matchedDocument ? (
               <>
-                <DocumentContent content={matchedDocument.content} quote={quote} scrollRef={scrollRef} />
+                <DocumentContent
+                  content={stripMarkdownImages(matchedDocument.content)}
+                  quote={quote && stripMarkdownImages(quote)}
+                  scrollRef={scrollRef}
+                />
                 {matchedDocument.fileUrl ? (
                   <TouchableOpacity
                     onPress={() => void Linking.openURL(matchedDocument.fileUrl!)}

@@ -1,11 +1,12 @@
 import { Image } from 'expo-image';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowLeft, MessageCircle, Pause, Play, RotateCcw, Volume2, VolumeX } from 'lucide-react-native';
-import { useState } from 'react';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { ArrowLeft, Brain, MessageCircle, Pause, PenTool, Play, RotateCcw, Trophy, Volume2, VolumeX } from 'lucide-react-native';
+import { useCallback, useState } from 'react';
 import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BattleMapCanvas } from '@/components/map/battle-map-canvas';
+import { BattlePracticeIntro } from '@/components/map/battle-practice-intro';
 import { Text } from '@/components/ui/text';
 import { BORDER, CARD, MUTED, ORANGE, ORANGE_TINT_MUTED, SURFACE, TEXT, TEXT2 } from '@/constants/palette';
 import { useCharactersByContext } from '@/features/characters/hooks/use-characters-by-context';
@@ -16,6 +17,17 @@ import { emptyBattleMap } from '@/features/map/battle-map';
 import { useBattleStory } from '@/features/map/hooks/use-battle-story';
 import { battleYear, battleYearLabel } from '@/features/map/hooks/use-map-battles';
 import { useMapPins } from '@/features/map/hooks/use-map-pins';
+import { isGradableMap, isScoredSymbol } from '@/features/map/battle-map-scoring';
+import {
+  hasSeenPracticeIntro,
+  markPracticeIntroSeen,
+  readPracticeRecord,
+  type PracticeKind,
+  type PracticeRecord,
+} from '@/features/map/practice-progress';
+import { useAuthStore } from '@/features/auth/store';
+
+const formatPercent = (n: number) => n.toLocaleString('vi-VN', { maximumFractionDigits: 1 });
 
 /**
  * Trang "Khám phá trận đánh" — bản mobile của BattleDetailView (người học):
@@ -39,6 +51,42 @@ export default function BattleDetailScreen() {
   // Lược đồ chưa chia giai đoạn vẫn đọc thuyết minh cũ của ghim
   const story = useBattleStory(battleMap, mainPin?.description ?? '', { voice: !muted });
   const { narration, phases, scenes, scene, sentences, hasStory, sceneWeights, sceneProgress } = story;
+
+  // Luyen ve lai luoc do: cham tren may, khong luu len may chu (giong web).
+  const uid = useAuthStore((st) => st.user?.uid);
+  const [record, setRecord] = useState<PracticeRecord | null>(null);
+  const [introOpen, setIntroOpen] = useState(false);
+  const [inviteDismissed, setInviteDismissed] = useState(false);
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      void readPracticeRecord(uid, contextId).then((r) => {
+        if (active) setRecord(r);
+      });
+      return () => {
+        active = false;
+      };
+    }, [uid, contextId]),
+  );
+  const canPractice = isGradableMap(battleMap);
+  const canSketch = battleMap.mode === 'custom' && !!battleMap.imageUrl.trim();
+  const practiceTarget = battleMap.symbols.filter(isScoredSymbol).length;
+  const openPractice = (kind: PracticeKind) => {
+    narration.pause();
+    router.push({ pathname: '/map/battle/practice/[id]', params: { id: contextId, mode: kind } });
+  };
+  const startChallenge = () => {
+    setIntroOpen(false);
+    setInviteDismissed(true);
+    void markPracticeIntroSeen();
+    openPractice('challenge');
+  };
+  // Lan dau thi giai thich truoc; da thu roi thi vao thang.
+  const openChallenge = async () => {
+    narration.pause();
+    if (record || (await hasSeenPracticeIntro())) startChallenge();
+    else setIntroOpen(true);
+  };
 
   if (isLoading) {
     return (
@@ -83,6 +131,25 @@ export default function BattleDetailScreen() {
             {event.location ? <Text style={s.barMeta} numberOfLines={1}>{event.location}</Text> : null}
           </View>
         </View>
+        {canSketch ? (
+          <TouchableOpacity
+            onPress={() => openPractice('sketch')}
+            style={s.navBtn}
+            accessibilityLabel="Tự vẽ lược đồ trên ảnh nền trống, không chấm điểm"
+          >
+            <PenTool size={17} color={TEXT} />
+          </TouchableOpacity>
+        ) : null}
+        {canPractice ? (
+          <TouchableOpacity onPress={() => void openChallenge()} style={s.challengeBtn} accessibilityLabel="Thử thách trí nhớ">
+            <Brain size={16} color="#fff" />
+            {record ? (
+              <Text style={s.challengeText}>{formatPercent(record.best)}%</Text>
+            ) : (
+              <Text style={s.challengeText}>Thử thách</Text>
+            )}
+          </TouchableOpacity>
+        ) : null}
       </View>
 
       {/* ── Lược đồ ── */}
@@ -109,6 +176,31 @@ export default function BattleDetailScreen() {
                 })}
               </Text>
             ) : null}
+          </View>
+        ) : null}
+
+        {/* Vua xem xong tran: luc de thu xem nho duoc bao nhieu */}
+        {canPractice && narration.finished && !inviteDismissed && !introOpen ? (
+          <View style={s.invite}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Brain size={20} color={ORANGE} />
+              <Text style={s.inviteEyebrow}>Bạn vừa xem xong trận đánh</Text>
+            </View>
+            <Text style={s.inviteTitle}>
+              {record ? `Kỷ lục của bạn là ${formatPercent(record.best)}%. Phá được không?` : 'Bạn có tự tin vào trí nhớ của mình?'}
+            </Text>
+            <Text style={s.inviteText}>
+              Lược đồ sẽ tạm ẩn đi. Thử vẽ lại {practiceTarget} ký hiệu theo trí nhớ và xem bạn đúng bao nhiêu phần trăm.
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
+              <TouchableOpacity onPress={() => void openChallenge()} style={s.invitePrimary}>
+                {record ? <Trophy size={14} color="#fff" /> : null}
+                <Text style={s.primaryBtnText}>Thử ngay</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setInviteDismissed(true)} style={s.inviteSecondary}>
+                <Text style={s.inviteSecondaryText}>Để sau</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         ) : null}
 
@@ -199,6 +291,20 @@ export default function BattleDetailScreen() {
           <Text style={s.audioCaption}>{sentences[narration.sentence]}</Text>
         ) : null}
       </View>
+
+      <BattlePracticeIntro
+        visible={introOpen}
+        symbolCount={practiceTarget}
+        record={record}
+        canReplay={hasStory}
+        onStart={startChallenge}
+        onReplay={() => {
+          setIntroOpen(false);
+          setInviteDismissed(false);
+          narration.restart();
+        }}
+        onClose={() => setIntroOpen(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -225,6 +331,25 @@ const s = StyleSheet.create({
     paddingHorizontal: 6, paddingVertical: 1, borderRadius: 3, overflow: 'hidden',
   },
   barMeta: { flexShrink: 1, color: MUTED, fontSize: 12 },
+  challengeBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 5, height: 38, paddingHorizontal: 10,
+    borderRadius: 10, backgroundColor: ORANGE,
+  },
+  challengeText: { color: '#fff', fontSize: 12, fontWeight: '800' },
+
+  invite: {
+    position: 'absolute', left: 12, right: 92, top: 12, gap: 4, padding: 14,
+    backgroundColor: 'rgba(247,241,234,0.97)', borderRadius: 12, borderWidth: 1, borderColor: BORDER,
+  },
+  inviteEyebrow: { color: ORANGE, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.8 },
+  inviteTitle: { color: TEXT, fontSize: 16, fontWeight: '900' },
+  inviteText: { color: TEXT2, fontSize: 13, lineHeight: 18 },
+  invitePrimary: {
+    flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: ORANGE, borderRadius: 10,
+    paddingHorizontal: 16, paddingVertical: 9,
+  },
+  inviteSecondary: { borderRadius: 10, paddingHorizontal: 14, paddingVertical: 9, borderWidth: 1, borderColor: BORDER },
+  inviteSecondaryText: { color: TEXT, fontSize: 14, fontWeight: '700' },
 
   caption: {
     position: 'absolute', left: 12, right: 92, bottom: 12,

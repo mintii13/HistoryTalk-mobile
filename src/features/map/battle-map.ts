@@ -20,6 +20,22 @@ export const SYMBOL_LABELS = {
 
 export type BattleSymbolType = keyof typeof SYMBOL_LABELS;
 
+export const SYMBOL_GROUPS: { title: string; types: BattleSymbolType[] }[] = [
+  { title: 'Hướng hành động', types: ['arrow', 'flank', 'march', 'retreat'] },
+  { title: 'Lực lượng', types: ['infantry', 'cavalry', 'archer', 'artillery', 'armor', 'navy', 'airforce'] },
+  { title: 'Trận địa', types: ['headquarters', 'fort', 'camp', 'defenseLine', 'stakes', 'ambush'] },
+  { title: 'Diễn biến', types: ['clash', 'victory', 'destroyed', 'step', 'label'] },
+];
+
+/** Độ rộng mặc định (% ảnh) của ký hiệu mới đặt. */
+export const defaultSymbolSize = (type: BattleSymbolType) =>
+  ['arrow', 'flank', 'march', 'retreat'].includes(type) ? 15
+    : ['defenseLine', 'stakes'].includes(type) ? 14
+      : type === 'step' ? 5 : 7;
+
+export const SYMBOL_SIZE_MIN = 2;
+export const SYMBOL_SIZE_MAX = 60;
+
 /** `label` của "label" là chữ vẽ trên bản đồ, của "step" là số trong vòng tròn, còn lại là chú giải. */
 export const isNoteSymbol = (type: BattleSymbolType) => type !== 'label' && type !== 'step';
 
@@ -72,6 +88,20 @@ export interface BattleMap {
   factions: BattleFaction[];
   symbols: BattleSymbol[];
   phases?: BattlePhase[];
+}
+
+export const clampPercent = (value: number) => Math.max(0, Math.min(100, value));
+
+/** Ký hiệu đường đi qua `points`; x/y/size giữ theo hộp bao (giống web). */
+export function withPoints(symbol: BattleSymbol, points: MapPoint[]): BattleSymbol {
+  const xs = points.map((p) => p.x), ys = points.map((p) => p.y);
+  const round = (v: number) => Math.round(v * 10) / 10;
+  const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+  return {
+    ...symbol, points: points.map((p) => ({ x: round(clampPercent(p.x)), y: round(clampPercent(p.y)) })),
+    x: round((x0 + x1) / 2), y: round((y0 + y1) / 2),
+    size: round(Math.max(SYMBOL_SIZE_MIN, Math.min(SYMBOL_SIZE_MAX, x1 - x0))),
+  };
 }
 
 export const emptyBattleMap = (): BattleMap => ({

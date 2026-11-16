@@ -119,7 +119,7 @@ function enteringFor(symbol: BattleSymbol, delay: number) {
     : FadeIn.delay(delay).duration(effect === 'draw' ? 950 : 650);
 }
 
-function LineSymbol({ symbol, aspect, color, width, height }: {
+export function LineSymbol({ symbol, aspect, color, width, height }: {
   symbol: BattleSymbol;
   aspect: number;
   color: string;

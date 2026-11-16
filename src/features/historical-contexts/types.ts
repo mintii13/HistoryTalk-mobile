@@ -1,4 +1,5 @@
 import type { BattleMap } from '@/features/map/battle-map';
+import type { StoryScript } from '@/features/story/types';
 
 import type { CharacterEra } from '../characters/types';
 
@@ -33,6 +34,8 @@ export interface HistoricalContext {
   videoUrl?: string;
   /** Lược đồ trận đánh (Content Admin soạn trên web); null nếu chưa có. */
   battleMap?: BattleMap | null;
+  /** Kich ban ke chuyen da xuat ban (thay video gioi thieu); null neu chua co. */
+  storyScript?: StoryScript | null;
   characterIds: ContextCharacter[];
   isPublished: boolean;
   isActive: boolean;

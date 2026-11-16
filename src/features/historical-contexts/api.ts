@@ -1,4 +1,5 @@
 import { isBattleMap } from '@/features/map/battle-map';
+import { parseStoryScript } from '@/features/story/story-script';
 import { apiClient } from '@/lib/api-client';
 
 import type { ContextEra, HistoricalContext, HistoricalContextPage } from './types';
@@ -10,8 +11,9 @@ interface ListParams {
   era?: ContextEra;
 }
 
-type ApiHistoricalContext = Omit<HistoricalContext, 'id' | 'characterIds' | 'createdAt' | 'updatedAt' | 'battleMap'> & {
+type ApiHistoricalContext = Omit<HistoricalContext, 'id' | 'characterIds' | 'createdAt' | 'updatedAt' | 'battleMap' | 'storyScript'> & {
   battleMap?: unknown;
+  storyScript?: unknown;
   id?: string;
   contextId?: string;
   characterIds?: HistoricalContext['characterIds'];
@@ -27,6 +29,7 @@ function normalizeHistoricalContext(context: ApiHistoricalContext): HistoricalCo
     id: context.id ?? context.contextId ?? '',
     characterIds: context.characterIds ?? [],
     battleMap: isBattleMap(context.battleMap) ? context.battleMap : null,
+    storyScript: parseStoryScript(context.storyScript),
     createdAt: context.createdAt ?? context.createdDate ?? '',
     updatedAt: context.updatedAt ?? context.updatedDate ?? '',
   };

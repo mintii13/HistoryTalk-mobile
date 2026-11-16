@@ -3,7 +3,7 @@ import { useEventListener } from "expo";
 import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { VideoView, useVideoPlayer } from "expo-video";
-import { ArrowLeft, ChevronRight, FileText, Map as MapIcon, Play, Trophy, X } from "lucide-react-native";
+import { ArrowLeft, BookOpen, ChevronRight, FileText, Map as MapIcon, Play, Trophy, X } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import {
   Linking,
@@ -40,6 +40,9 @@ import { useHistoricalContext } from "@/features/historical-contexts/hooks/use-h
 import { formatContextYear, getContextImageUri } from "@/features/historical-contexts/types";
 import { battleYear } from "@/features/map/hooks/use-map-battles";
 import { useMapPins } from "@/features/map/hooks/use-map-pins";
+import { useStartChat } from "@/features/chat/hooks/use-start-chat";
+import { isPlayableScript } from "@/features/story/story-script";
+import { ContextStoryModal } from "@/components/story/context-story-modal";
 
 
 function CharacterChip({
@@ -344,6 +347,8 @@ export default function ContextDetailScreen() {
   const [skippedIntroId, setSkippedIntroId] = useState<string | null>(null);
   const [manualVideoId, setManualVideoId] = useState<string | null>(null);
   const [openDocumentId, setOpenDocumentId] = useState<string | null>(null);
+  const [manualStoryId, setManualStoryId] = useState<string | null>(null);
+  const { startChat } = useStartChat();
   const [refreshing, setRefreshing] = useState(false);
   const queryClient = useQueryClient();
 
@@ -407,18 +412,42 @@ export default function ContextDetailScreen() {
   const videoUri = ctx.videoUrl?.trim();
 
   const hasSkippedIntro = skippedIntroId === resolvedId;
-  const shouldAutoShowIntro = !!videoUri && !hasSkippedIntro;
+  // Kich ban ke chuyen da xuat ban thay cho video gioi thieu (giong web).
+  const story = isPlayableScript(ctx.storyScript) ? ctx.storyScript : null;
+  const shouldShowStory = !!story && (!hasSkippedIntro || manualStoryId === resolvedId);
+  const shouldAutoShowIntro = !story && !!videoUri && !hasSkippedIntro;
   const shouldShowVideo =
     shouldAutoShowIntro || (!!videoUri && manualVideoId === resolvedId);
   const closeVideo = () => {
     setSkippedIntroId(resolvedId ?? null);
     setManualVideoId(null);
   };
+  const closeStory = () => {
+    setSkippedIntroId(resolvedId ?? null);
+    setManualStoryId(null);
+  };
+  const chatFromStory = (characterId: string) => {
+    const character = relatedCharacters.find((c) => c.id === characterId);
+    if (!character) return;
+    closeStory();
+    void startChat(character, ctx.id, ctx.name);
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: "transparent" }}>
       {shouldShowVideo ? (
         <IntroVideo source={videoUri} title={ctx.name} onClose={closeVideo} />
+      ) : null}
+      {story ? (
+        <ContextStoryModal
+          key={ctx.id}
+          visible={shouldShowStory}
+          script={story}
+          contextTitle={ctx.name}
+          characters={relatedCharacters}
+          onFinish={closeStory}
+          onOpenChat={chatFromStory}
+        />
       ) : null}
 
       <ScrollView
@@ -516,6 +545,23 @@ export default function ContextDetailScreen() {
               <View style={{ flex: 1 }}>
                 <Text style={mapLinkStyles.title}>Xem trên bản đồ</Text>
                 <Text style={mapLinkStyles.sub}>Vị trí trận đánh và ghi chú của bạn</Text>
+              </View>
+              <ChevronRight size={18} color={MUTED} />
+            </TouchableOpacity>
+          ) : null}
+
+          {/* Nghe lai ke chuyen */}
+          {story ? (
+            <TouchableOpacity
+              onPress={() => setManualStoryId(resolvedId ?? null)}
+              activeOpacity={0.8}
+              style={mapLinkStyles.row}
+              accessibilityRole="button"
+            >
+              <BookOpen size={18} color={ORANGE} strokeWidth={1.8} />
+              <View style={{ flex: 1 }}>
+                <Text style={mapLinkStyles.title}>Nghe kể chuyện</Text>
+                <Text style={mapLinkStyles.sub} numberOfLines={1}>{story.title || ctx.name}</Text>
               </View>
               <ChevronRight size={18} color={MUTED} />
             </TouchableOpacity>

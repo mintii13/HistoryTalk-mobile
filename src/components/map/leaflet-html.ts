@@ -29,6 +29,11 @@ const SCRIPT = String.raw`
     bounceAtZoomLimits: false, zoomControl: false, attributionControl: true, preferCanvas: true,
   });
   map.fitBounds(MAINLAND);
+  // Cham ghi chu chua luu nam trong pane rieng khong nhan cham: voi preferCanvas, canvas cua no
+  // se o lai markerPane sau khi xoa va nuot cham/nhan vao cac ghim (giong fix tren web).
+  var draftPane = map.createPane('draftPane');
+  draftPane.style.zIndex = '610';
+  draftPane.style.pointerEvents = 'none';
   map.attributionControl.setPrefix('<a href="https://leafletjs.com">Leaflet</a>');
 
   var esc = function (v) {
@@ -188,8 +193,8 @@ const SCRIPT = String.raw`
       if (draftLayer) { map.removeLayer(draftLayer); draftLayer = null; }
       if (!d) return;
       draftLayer = L.layerGroup().addTo(map);
-      L.circleMarker([d.lat, d.lng], { radius: 18, color: '#ffffff', weight: 2, fillColor: NOTE, fillOpacity: 0.2, interactive: false }).addTo(draftLayer);
-      L.circleMarker([d.lat, d.lng], { radius: 8, color: '#ffffff', weight: 3, fillColor: NOTE, fillOpacity: 1, interactive: false })
+      L.circleMarker([d.lat, d.lng], { radius: 18, color: '#ffffff', weight: 2, fillColor: NOTE, fillOpacity: 0.2, interactive: false, pane: 'draftPane' }).addTo(draftLayer);
+      L.circleMarker([d.lat, d.lng], { radius: 8, color: '#ffffff', weight: 3, fillColor: NOTE, fillOpacity: 1, interactive: false, pane: 'draftPane' })
         .bindTooltip('Ghi chú · Chưa lưu', { permanent: true, direction: 'top', offset: [0, -20], opacity: 1 }).addTo(draftLayer);
     },
     // cover = phần chiều cao bản đồ bị bảng thông tin che từ dưới lên (0–1):
@@ -224,7 +229,7 @@ body { font-family: Inter, -apple-system, Roboto, "Segoe UI", Arial, sans-serif;
   text-shadow: 0 1px 0 rgba(245,242,234,.95), 0 -1px 0 rgba(245,242,234,.72), 1px 0 0 rgba(245,242,234,.72), -1px 0 0 rgba(245,242,234,.72); }
 .province-wrap { opacity: 0; transition: opacity 180ms ease; }
 #map.show-provinces .province-wrap { opacity: 1; }
-.battle { position: relative; width: 60px; height: 60px; transform: scale(var(--marker-scale, .65)); transform-origin: center bottom; }
+.battle { position: relative; width: 60px; height: 60px; transform: scale(var(--marker-scale, .65)); transform-origin: center center; /* = iconAnchor, ghim khong troi khi zoom */ }
 .battle .photo { position: relative; width: 60px; height: 60px; box-sizing: border-box; border: 3px solid ${ORANGE}; border-radius: 50%; overflow: hidden;
   background: ${CARD}; display: grid; place-items: center; }
 .battle .photo span { color: ${ORANGE}; font-size: 24px; }

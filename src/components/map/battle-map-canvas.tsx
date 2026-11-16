@@ -43,10 +43,11 @@ export function SymbolGlyph({ type, text, color, width }: {
   const unitBox = <Rect x="14" y="9" width="72" height="32" fill="white" />;
   return (
     <Svg width={width} height={width / 2} viewBox="0 0 100 50" fill="none" stroke={color} strokeWidth={3} strokeLinejoin="round">
-      {type === 'arrow' && <Path d="M4 18H68V5L96 25 68 45V32H4Z" fill={color} fillOpacity={0.3} />}
-      {type === 'flank' && <><Path d="M6 44C18 10 60 4 82 26" strokeWidth={6} /><Path d="M94 38 73 34 88 19Z" fill={color} /></>}
-      {type === 'march' && <><Path d="M4 25H88" /><Path d="M74 13 94 25 74 37" /></>}
-      {type === 'retreat' && <><Path d="M4 25H76" strokeWidth={6} strokeDasharray="10 7" /><Path d="M72 11 96 25 72 39Z" fill={color} /></>}
+      {/* 4 loai mui ten di chuyen ve giong tren luoc do: dac, rong ruot, chu V, net dut co vach duoi */}
+      {type === 'arrow' && <><Path d="M6 25H70" strokeWidth={8} strokeLinecap="round" /><Path d="M66 8 96 25 66 42Z" fill={color} /></>}
+      {type === 'flank' && <><Path d="M8 42C20 16 48 8 74 22" strokeWidth={13} strokeLinecap="round" /><Path d="M8 42C20 16 48 8 74 22" stroke="white" strokeWidth={5} strokeLinecap="round" /><Path d="M95 34 66 34 80 9Z" fill={color} /></>}
+      {type === 'march' && <><Path d="M4 25H90" strokeWidth={2.5} /><Path d="M18 17 26 25 18 33M38 17 46 25 38 33M58 17 66 25 58 33" strokeWidth={3.5} strokeLinecap="round" /><Path d="M80 13 94 25 80 37" strokeWidth={3.5} strokeLinecap="round" /></>}
+      {type === 'retreat' && <><Path d="M8 25H72" strokeWidth={6} strokeDasharray="10 6" /><Path d="M6 11V39" strokeWidth={5} /><Path d="M70 11 96 25 70 39Z" fill={color} /></>}
       {type === 'infantry' && <>{unitBox}<Path d="m14 9 72 32M86 9 14 41" /></>}
       {type === 'cavalry' && <>{unitBox}<Path d="M14 41 86 9" /></>}
       {type === 'archer' && <>{unitBox}<Path d="M36 35Q50 8 64 35M36 35H64M50 35V16" /></>}
@@ -133,7 +134,12 @@ function LineSymbol({ symbol, aspect, color, width, height }: {
       <G strokeLinejoin="round">
         <Path d={g.line} fill="none" stroke="#fff" strokeOpacity={0.85} strokeWidth={g.width + 0.55} strokeDasharray={g.dash} strokeLinecap={dashed ? 'butt' : 'round'} />
         {g.teeth ? <Path d={g.teeth} fill={color} stroke="#fff" strokeOpacity={0.85} strokeWidth={0.25} /> : null}
+        {g.chevrons ? <Path d={g.chevrons} fill="none" stroke="#fff" strokeOpacity={0.85} strokeWidth={g.width * 1.5 + 0.55} strokeLinecap="round" /> : null}
+        {g.tail ? <Path d={g.tail} fill="none" stroke="#fff" strokeOpacity={0.85} strokeWidth={g.width * 1.3 + 0.55} /> : null}
         <Path d={g.line} fill="none" stroke={color} strokeWidth={g.width} strokeDasharray={g.dash} strokeLinecap={dashed ? 'butt' : 'round'} />
+        {g.hollowWidth ? <Path d={g.line} fill="none" stroke="#fff" strokeOpacity={0.92} strokeWidth={g.hollowWidth} strokeLinecap="round" /> : null}
+        {g.chevrons ? <Path d={g.chevrons} fill="none" stroke={color} strokeWidth={g.width * 1.5} strokeLinecap="round" /> : null}
+        {g.tail ? <Path d={g.tail} fill="none" stroke={color} strokeWidth={g.width * 1.3} /> : null}
       </G>
       {g.head ? (
         <Path

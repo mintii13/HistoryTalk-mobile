@@ -35,16 +35,19 @@ import { useCreateOrder } from '@/features/payment/hooks/use-create-order';
 import { useMyOrders } from '@/features/payment/hooks/use-my-orders';
 import { useNotifyPayosReturn } from '@/features/payment/hooks/use-notify-payos-return';
 import { useTiers } from '@/features/payment/hooks/use-tiers';
+import { useUpgradeQuote } from '@/features/payment/hooks/use-upgrade-quote';
 import {
+  canUpgradeTo,
   formatVnd,
   groupThousands,
   groupTierPlans,
   hasYearlyPlans,
+  planRank,
   tierForCycle,
   yearlySavingPercent,
   type BillingCycle,
 } from '@/features/payment/tier-plans';
-import type { OrderStatus, Tier } from '@/features/payment/types';
+import type { OrderStatus, Tier, UpgradeQuote } from '@/features/payment/types';
 
 // Phai khop scheme "mobilehistorytalk" dang ky trong app.json — BE dung gia
 // tri nay lam returnUrl/cancelUrl khi tao PayOS checkout link (platform: 'mobile').
@@ -58,7 +61,58 @@ function tierFeatureSummary(title: string): string {
   return 'Nội dung, chat, quiz';
 }
 
-const RESULT_LABEL: Record<OrderStatus, { label: string; color: string; icon: any }> = {
+/** Loi 400 nang goi cua BE la tieng Anh — doi sang tieng Viet. */
+function upgradeErrorMessage(message: string | undefined, fallback: string): string {
+  if (!message) return fallback;
+  if (message.startsWith('You can only upgrade')) {
+    return 'Chỉ có thể nâng lên gói cao hơn, hoặc gói dài hơn cùng hạng với gói hiện tại.';
+  }
+  if (message.includes('already covers')) {
+    return 'Số tiền quy đổi từ gói hiện tại đã đủ trả gói này. Vui lòng chọn gói dài hơn.';
+  }
+  if (message === 'Tier is inactive or deleted') return 'Gói này hiện không còn được bán.';
+  return message;
+}
+
+function cycleLabel(noMonth: number | null | undefined): string {
+  if (!noMonth) return '';
+  return noMonth >= 12 ? ` (${noMonth === 12 ? 'năm' : `${noMonth / 12} năm`})` : ` (${noMonth} tháng)`;
+}
+
+function formatDateTime(value: string | null): string {
+  if (!value) return '—';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return value;
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${pad(d.getHours())}:${pad(d.getMinutes())} ${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
+}
+
+/** Hoi xac nhan gia nang goi; resolve true khi nguoi dung chon Thanh toan. */
+function confirmUpgrade(quote: UpgradeQuote): Promise<boolean> {
+  const lines = [
+    `Phần chưa dùng của gói ${quote.currentTierTitle ?? ''}${cycleLabel(quote.currentTierNoMonth)} `
+      + `(hết hạn ${formatDateTime(quote.currentEndTime)}) được quy đổi và trừ vào giá gói mới.`,
+    '',
+    `Giá gói mới: ${formatVnd(quote.originalAmount)}`,
+    `Quy đổi từ gói hiện tại: −${formatVnd(quote.creditAmount)}`,
+    `Cần thanh toán: ${formatVnd(quote.amountToPay)}`,
+    '',
+    'Gói mới bắt đầu ngay khi thanh toán thành công. Số tiền có thể chênh vài đồng vì phần quy đổi được tính lại lúc tạo đơn.',
+  ];
+  return new Promise((resolve) => {
+    Alert.alert(
+      `Nâng cấp lên ${quote.targetTierTitle}${cycleLabel(quote.targetTierNoMonth)}`,
+      lines.join('\n'),
+      [
+        { text: 'Hủy', style: 'cancel', onPress: () => resolve(false) },
+        { text: 'Thanh toán', onPress: () => resolve(true) },
+      ],
+      { cancelable: true, onDismiss: () => resolve(false) },
+    );
+  });
+}
+
+const RESULT_LABEL:Record<OrderStatus, { label: string; color: string; icon: any }> = {
   PAID: { label: 'Thanh toán thành công! Gói đã được kích hoạt.', color: GREEN, icon: BadgeCheck },
   PENDING: { label: 'PayOS đang xử lý. Hãy kiểm tra lại sau ít phút.', color: AMBER, icon: Clock },
   CANCELLED: { label: 'Giao dịch đã bị hủy.', color: RED, icon: XCircle },
@@ -72,6 +126,7 @@ export default function PaymentScreen() {
   const { data: profile, refetch: refetchMe } = useMe();
   const { data: tiers, isLoading, refetch: refetchTiers } = useTiers();
   const createOrder = useCreateOrder();
+  const upgradeQuote = useUpgradeQuote();
   const notifyReturn = useNotifyPayosReturn();
   const { refetch: refetchOrders } = useMyOrders();
   const [refreshing, setRefreshing] = useState(false);
@@ -91,6 +146,8 @@ export default function PaymentScreen() {
   const plans = groupTierPlans(tiers ?? []);
   const showCycleToggle = hasYearlyPlans(plans);
   const maxSaving = Math.max(0, ...plans.map((p) => yearlySavingPercent(p) ?? 0));
+  const currentTier = tiers?.find((t) => t.tierId === profile?.tierId);
+  const hasPaidPlan = !!currentTier && currentTier.amount > 0;
 
   // openAuthSessionAsync mo checkout trong trinh duyet trong app va tu dong
   // dong + resolve ngay khi PayOS redirect ve PAYOS_REDIRECT_URL (deep link
@@ -105,6 +162,11 @@ export default function PaymentScreen() {
     setResultStatus(null);
     setLoadingTierId(tier.tierId);
     try {
+      // Dang co goi tra phi: xem truoc gia sau khi tru phan quy doi roi moi tao don.
+      if (hasPaidPlan) {
+        const quote = await upgradeQuote.mutateAsync(tier.tierId);
+        if (quote.upgrade && !(await confirmUpgrade(quote))) return;
+      }
       const order = await createOrder.mutateAsync(tier.tierId);
       const result = await WebBrowser.openAuthSessionAsync(order.checkoutUrl, PAYOS_REDIRECT_URL);
 
@@ -136,7 +198,7 @@ export default function PaymentScreen() {
       }
       setResultStatus(resolvedStatus);
     } catch (e: any) {
-      Alert.alert('Lỗi', e?.message ?? 'Không thể tạo đơn thanh toán. Vui lòng thử lại.');
+      Alert.alert('Lỗi', upgradeErrorMessage(e?.message, 'Không thể tạo đơn thanh toán. Vui lòng thử lại.'));
     } finally {
       setLoadingTierId(null);
     }
@@ -213,9 +275,13 @@ export default function PaymentScreen() {
             const isFree = plan.isFree;
             const isYearly = tier.noMonth >= 12;
             const saving = isYearly ? yearlySavingPercent(plan) : null;
-            // The account's subscription may be either the monthly or the yearly row of this plan.
-            const isCurrent = !!profile?.tierId
-              && (profile.tierId === plan.monthly?.tierId || profile.tierId === plan.yearly?.tierId);
+            const isCurrent = !!profile?.tierId && profile.tierId === tier.tierId;
+            // Khong cho ha goi: goi thap hon hoac ngan hon cung hang thi khoa lai.
+            const blockedLabel = !isFree && !isCurrent && !canUpgradeTo(currentTier, tier)
+              ? planRank(currentTier?.title) === planRank(tier.title)
+                ? 'Đang dùng gói dài hơn'
+                : 'Đã bao gồm trong gói hiện tại'
+              : null;
             const isFeatured = index === plans.length - 1 && !isFree;
             const isBusy = loadingTierId === tier.tierId;
 
@@ -259,6 +325,10 @@ export default function PaymentScreen() {
                   <View style={[s.actionBtn, s.actionBtnDisabled]}>
                     <Text style={{ color: MUTED, fontWeight: '700', fontSize: 14 }}>Gói mặc định</Text>
                   </View>
+                ) : blockedLabel ? (
+                  <View style={[s.actionBtn, s.actionBtnDisabled]}>
+                    <Text style={{ color: MUTED, fontWeight: '700', fontSize: 14 }}>{blockedLabel}</Text>
+                  </View>
                 ) : (
                   <TouchableOpacity
                     onPress={() => handleCheckout(tier)}
@@ -268,7 +338,7 @@ export default function PaymentScreen() {
                   >
                     {isBusy
                       ? <ActivityIndicator color={isFeatured ? '#fff' : ORANGE} />
-                      : <Text style={{ color: isFeatured ? '#fff' : ORANGE, fontWeight: '700', fontSize: 14 }}>Đăng ký ngay</Text>}
+                      : <Text style={{ color: isFeatured ? '#fff' : ORANGE, fontWeight: '700', fontSize: 14 }}>{hasPaidPlan ? 'Nâng cấp' : 'Đăng ký ngay'}</Text>}
                   </TouchableOpacity>
                 )}
               </View>

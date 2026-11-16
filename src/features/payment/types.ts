@@ -15,9 +15,29 @@ export interface CheckoutResponse {
   paymentLinkId: string;
   checkoutUrl: string;
   qrCode: string;
+  /** So tien thuc tra (= originalAmount - upgradeCreditAmount). */
   amount: number;
+  /** Gia niem yet cua goi mua. */
+  originalAmount?: number;
+  /** Tien quy doi tu goi cu khi nang goi giua ky; 0 neu mua moi. */
+  upgradeCreditAmount?: number;
   status: OrderStatus;
   expiredAt: string | null;
+}
+
+/** Xem truoc gia mua goi; `upgrade` = true khi thay goi tra phi dang active. */
+export interface UpgradeQuote {
+  currentTierId: string | null;
+  currentTierTitle: string | null;
+  currentTierNoMonth: number | null;
+  currentEndTime: string | null;
+  targetTierId: string;
+  targetTierTitle: string;
+  targetTierNoMonth: number;
+  originalAmount: number;
+  creditAmount: number;
+  amountToPay: number;
+  upgrade: boolean;
 }
 
 export interface PaymentHistoryItem {

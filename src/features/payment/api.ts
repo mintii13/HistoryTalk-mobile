@@ -1,11 +1,15 @@
 import { apiClient } from '@/lib/api-client';
 
 import type {
-  CheckoutResponse, PaymentHistoryItem, PayosReturnPayload, PayosReturnResult, Tier,
+  CheckoutResponse, PaymentHistoryItem, PayosReturnPayload, PayosReturnResult, Tier, UpgradeQuote,
 } from './types';
 
 export const paymentApi = {
   getTiers: () => apiClient<Tier[]>('/payments/tiers'),
+
+  // Xem truoc gia nang goi giua ky (tru phan chua dung cua goi cu); khong tao don.
+  getUpgradeQuote: (tierId: string) =>
+    apiClient<UpgradeQuote>(`/payments/upgrade-quote?tierId=${encodeURIComponent(tierId)}`),
 
   // BE hien chi doc `tierId` (CreatePaymentRequest) — `platform` bi bo qua nen PayOS
   // redirect ve URL web; man thanh toan tu doi chieu trang thai qua /payments/me khi

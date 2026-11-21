@@ -33,6 +33,7 @@ import { useMe } from '@/features/auth/hooks/use-me';
 import { useMyClassrooms, useStudentDashboard } from '@/features/classroom/hooks';
 import { CLASSROOM_STATUS, classroomMeta, type Classroom } from '@/features/classroom/types';
 import { materialHref, useStudentMaterials } from '@/features/local-contents/hooks';
+import { formatWeekdayDate } from '@/lib/format';
 
 function greeting(hour: number) {
   if (hour < 11) return 'Chào buổi sáng';
@@ -85,7 +86,7 @@ export default function ClassesScreen() {
       >
         <View style={{ gap: 4 }}>
           <Text style={s.date}>
-            {now.toLocaleDateString('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' })}
+            {formatWeekdayDate(now)}
           </Text>
           <Text style={s.hello}>{greeting(now.getHours())}, {name}!</Text>
           {classList.length > 0 ? (

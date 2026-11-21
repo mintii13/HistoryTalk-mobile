@@ -36,6 +36,7 @@ import {
 } from '@/constants/palette';
 import { useCharacter } from '@/features/characters/hooks/use-character';
 import { ERA_COLORS, ERA_HERO_BG, getCharacterImageUri } from '@/features/characters/types';
+import { formatDate as formatViDate } from '@/lib/format';
 
 type ActiveTab = 'info' | 'chat';
 
@@ -50,9 +51,7 @@ function formatDate(y?: number, m?: number, d?: number, bc?: boolean): string | 
 
 function formatSessionDate(value?: string) {
   if (!value) return '';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '';
-  return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  return formatViDate(value, '');
 }
 
 

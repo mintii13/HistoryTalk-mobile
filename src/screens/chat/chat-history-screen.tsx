@@ -37,6 +37,7 @@ import { useChatHistory } from "@/features/chat/hooks/use-chat-history";
 import { useDeleteSession } from "@/features/chat/hooks/use-delete-session";
 import { sessionTime as getSessionTime } from "@/features/chat/session-time";
 import type { ChatHistoryGroup, ChatSession } from "@/features/chat/types";
+import { formatDate as formatViDate } from "@/lib/format";
 
 type RawHistoryItem = Partial<ChatHistoryGroup & ChatSession>;
 
@@ -50,13 +51,7 @@ interface CharacterHistoryGroup {
 
 function formatDate(value?: string) {
   if (!value) return "";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleDateString("vi-VN", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
+  return formatViDate(value, "");
 }
 
 function getCharacterLabel(session: ChatSession) {

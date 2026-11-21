@@ -13,6 +13,7 @@ import { ERA_LABELS, type CharacterEra } from '@/features/characters/types';
 import { useCustomerDashboard } from '@/features/dashboard/hooks/use-customer-dashboard';
 import { useMyDashboard } from '@/features/dashboard/hooks/use-my-dashboard';
 import { useQuizResults } from '@/features/quiz/hooks/use-quiz-results';
+import { formatDate as formatViDate } from '@/lib/format';
 
 /**
  * Tiến độ học tập của Customer — bản mobile của trang /grades bên web
@@ -38,11 +39,7 @@ function formatNumber(n: number) {
 }
 
 function formatDate(iso?: string | null) {
-  if (!iso) return '—';
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime())
-    ? '—'
-    : d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  return formatViDate(iso);
 }
 
 function eraLabel(era: string) {

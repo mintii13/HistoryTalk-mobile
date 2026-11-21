@@ -46,7 +46,7 @@ import { useChatHistory } from "@/features/chat/hooks/use-chat-history";
 import { useGamificationToday } from "@/features/gamification/hooks/use-today";
 import { useHistoricalContexts } from "@/features/historical-contexts/hooks/use-historical-contexts";
 import { useQuizResults } from "@/features/quiz/hooks/use-quiz-results";
-import { formatRelative } from "@/lib/format";
+import { formatDate, formatRelative } from "@/lib/format";
 
 
 function greeting(): string {
@@ -578,7 +578,7 @@ function CustomerHomeScreen() {
                         {item.percentage}%
                       </Text>
                       <Text style={{ color: TEXT2, fontSize: 9 }}>
-                        {new Date(item.completedAt).toLocaleDateString("vi-VN")}
+                        {formatDate(item.completedAt)}
                       </Text>
                     </View>
                   </TouchableOpacity>

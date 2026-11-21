@@ -19,10 +19,10 @@ import {
 } from '@/constants/palette';
 import { useQuizResults } from '@/features/quiz/hooks/use-quiz-results';
 import type { MyResult } from '@/features/quiz/types';
+import { formatDateTime } from '@/lib/format';
 
 function formatDate(iso?: string) {
-  if (!iso) return '—';
-  return new Date(iso).toLocaleString('vi-VN');
+  return formatDateTime(iso);
 }
 
 function scoreColor(percentage: number) {

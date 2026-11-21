@@ -1,19 +1,42 @@
-/** Dinh dang ngay gio / tien dung chung cho cac man hinh (locale vi-VN). */
+/**
+ * Dinh dang ngay gio / tien dung chung cho cac man hinh.
+ * Ngay luon theo kieu Viet Nam: ngay truoc thang sau (dd/mm/yyyy), gio 24h (HH:mm).
+ * Tu ghep chuoi thay vi toLocaleDateString('vi-VN') vi Intl tren Hermes khong on dinh
+ * (nhieu may van ra kieu My mm/dd/yyyy).
+ */
 
-const toDate = (iso?: string | null) => {
-  if (!iso) return null;
-  const d = new Date(iso);
+const pad = (n: number) => String(n).padStart(2, '0');
+
+const WEEKDAYS = ['Chủ nhật', 'Thứ hai', 'Thứ ba', 'Thứ tư', 'Thứ năm', 'Thứ sáu', 'Thứ bảy'];
+
+export const toDate = (value?: string | number | Date | null) => {
+  if (value == null || value === '') return null;
+  const d = value instanceof Date ? value : new Date(value);
   return Number.isNaN(d.getTime()) ? null : d;
 };
 
-/** dd/mm/yyyy, "—" khi khong co/sai dinh dang. */
-export function formatDate(iso?: string | null) {
-  return toDate(iso)?.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }) ?? '—';
+/** dd/mm/yyyy, `fallback` ("—") khi khong co/sai dinh dang. */
+export function formatDate(value?: string | number | Date | null, fallback = '—') {
+  const d = toDate(value);
+  return d ? `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}` : fallback;
 }
 
-/** Ngay + gio day du theo vi-VN, "—" khi khong co. */
-export function formatDateTime(iso?: string | null) {
-  return toDate(iso)?.toLocaleString('vi-VN') ?? '—';
+/** HH:mm (24h), `fallback` ("") khi khong co. */
+export function formatTime(value?: string | number | Date | null, fallback = '') {
+  const d = toDate(value);
+  return d ? `${pad(d.getHours())}:${pad(d.getMinutes())}` : fallback;
+}
+
+/** HH:mm dd/mm/yyyy, "—" khi khong co. */
+export function formatDateTime(value?: string | number | Date | null, fallback = '—') {
+  const d = toDate(value);
+  return d ? `${formatTime(d)} ${formatDate(d)}` : fallback;
+}
+
+/** "Thứ sáu, 20/11/2026". */
+export function formatWeekdayDate(value?: string | number | Date | null, fallback = '—') {
+  const d = toDate(value);
+  return d ? `${WEEKDAYS[d.getDay()]}, ${formatDate(d)}` : fallback;
 }
 
 /** "Vừa xong" / "5 phút trước" / ... / ngay cu the neu qua 1 tuan. */
@@ -27,7 +50,7 @@ export function formatRelative(iso?: string | null) {
   if (hr < 24) return `${hr} giờ trước`;
   const day = Math.floor(hr / 24);
   if (day < 7) return `${day} ngày trước`;
-  return d.toLocaleDateString('vi-VN');
+  return formatDate(d);
 }
 
 export function formatCurrency(amount: number) {

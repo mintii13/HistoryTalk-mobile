@@ -58,6 +58,7 @@ import type { UpdateProfileInput } from '@/features/auth/types';
 import { todayQuota, useStudentDashboard } from '@/features/classroom/hooks';
 import { useTogglePush } from '@/features/notifications/hooks/use-toggle-push';
 import { useTiers } from '@/features/payment/hooks/use-tiers';
+import { formatDate as formatViDate } from '@/lib/format';
 import {
   cancelDailyReminder,
   getPushPreference,
@@ -77,9 +78,17 @@ const GENDER_OPTS = [
 // ─── helpers ──────────────────────────────────────────────────────────────────
 function formatDob(iso?: string) {
   if (!iso) return '';
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return iso;
-  return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+  // Doc thang yyyy-MM-dd de khong bi lech ngay theo mui gio.
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : formatViDate(iso, iso);
+}
+
+/** Chi giu chu so va tu chen "/": "13022005" -> "13/02/2005". */
+function maskDob(raw: string): string {
+  const digits = raw.replace(/\D/g, '').slice(0, 8);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
 }
 
 function parseDob(display: string): string | undefined {
@@ -94,8 +103,7 @@ function parseDob(display: string): string | undefined {
 }
 
 function formatDate(iso?: string) {
-  if (!iso) return '—';
-  return new Date(iso).toLocaleDateString('vi-VN');
+  return formatViDate(iso);
 }
 
 // ─── sub-components ───────────────────────────────────────────────────────────
@@ -660,7 +668,7 @@ export default function ProfileScreen() {
                   <View>
                     <InputField label="Tên người dùng"  value={form.userName}    onChange={(v) => setForm((f) => ({ ...f, userName: v }))}    icon={User}  />
                     <InputField label="Tên đầy đủ"       value={form.fullName}    onChange={(v) => setForm((f) => ({ ...f, fullName: v }))}    icon={User}  placeholder="Nguyễn Văn A" />
-                    <InputField label="Ngày sinh"         value={form.dob}         onChange={(v) => setForm((f) => ({ ...f, dob: v }))}         icon={Calendar} placeholder="DD/MM/YYYY" />
+                    <InputField label="Ngày sinh"         value={form.dob}         onChange={(v) => setForm((f) => ({ ...f, dob: maskDob(v) }))} icon={Calendar} placeholder="DD/MM/YYYY" />
                     <InputField label="Số điện thoại"    value={form.phoneNumber} onChange={(v) => setForm((f) => ({ ...f, phoneNumber: v }))} icon={Phone} keyboardType="phone-pad" />
                     <InputField label="Địa chỉ"           value={form.address}     onChange={(v) => setForm((f) => ({ ...f, address: v }))}     icon={MapPin} multiline />
 

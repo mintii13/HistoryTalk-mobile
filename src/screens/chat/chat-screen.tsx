@@ -76,6 +76,7 @@ import { DocumentCitationModal } from "@/features/documents/DocumentCitationModa
 import { recordStudyActivity } from "@/features/gamification/study-check-in";
 import { speakWithAzure, stopAzureSpeech } from "@/lib/azure-speech";
 import { playEndCallSound } from "@/lib/sound-effects";
+import { formatTime } from "@/lib/format";
 
 // Cảnh báo "AI có thể sai" — giống hệt web (xem chat-main.tsx bên FE), gồm
 // badge "!" luôn hiện cạnh tên nhân vật + banner tự ẩn sau vài giây khi vừa
@@ -134,9 +135,7 @@ const COLLAPSE_THRESHOLD = 550;
 
 function formatClock(iso?: string): string {
   if (!iso) return "";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "";
-  return d.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
+  return formatTime(iso);
 }
 
 function formatTokens(n: number): string {
@@ -243,12 +242,7 @@ function groupTimelineMessages(messages: ChatMessage[]): ChatTimelineItem[] {
 }
 
 function formatCallTime(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleTimeString("vi-VN", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return formatTime(value);
 }
 
 function formatCallDuration(seconds: number) {

@@ -4,6 +4,8 @@ import { MAP_BOUNDS, STUDY_NOTE_COLOR } from '@/features/map/types';
 // Ranh giới quốc gia + tỉnh (từ HistoryTalk-FE public/data, đã làm tròn toạ độ)
 const vietnamAdm0 = require('@/assets/data/vietnam-adm0.json');
 const vietnamAdm1 = require('@/assets/data/vietnam-adm1.json');
+// Dat lien cac nuoc lang gieng (Natural Earth 50m, public domain), khong co gi o vung Hoang Sa/Truong Sa.
+const neighbors = require('@/assets/data/neighbors.json');
 
 /**
  * Trang Leaflet chạy trong WebView — dựng lại nền bản đồ của web (LeafletMap.tsx):
@@ -42,10 +44,14 @@ const SCRIPT = String.raw`
   };
 
   // ── Nền bản đồ ──
-  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
-    maxZoom: 16, attribution: 'Nền bản đồ &copy; Esri, &copy; OpenStreetMap contributors',
+  // Khong dung anh nen ben ngoai: Esri in san ten nuoc/bien bang tieng Anh, OSM in ten nuoc ngoai o
+  // Hoang Sa/Truong Sa. Dat lien tu ve tu GeoJSON cua minh, moi ten dia danh do app ve bang tieng Viet.
+  L.geoJSON(NEIGHBORS, {
+    interactive: false,
+    attribution: 'Dữ liệu nền: Natural Earth',
+    style: { color: '#111111', weight: 0.6, opacity: 0.22, fillColor: '#E9E6DE', fillOpacity: 1 },
   }).addTo(map);
-  L.geoJSON(ADM0, { interactive: false, style: { color: '#B8321F', weight: 3, opacity: 0.95, fillColor: '#F5F2EA', fillOpacity: 0.3 } }).addTo(map);
+  L.geoJSON(ADM0, { interactive: false, style: { color: '#B8321F', weight: 3, opacity: 0.95, fillColor: '#F5F2EA', fillOpacity: 1 } }).addTo(map);
   L.geoJSON(ADM1, {
     interactive: false,
     style: { color: '#111111', weight: 0.8, opacity: 0.32, fillOpacity: 0 },
@@ -76,6 +82,13 @@ const SCRIPT = String.raw`
   label([17.05, 112.95], 'Hoàng Sa');
   label([10.85, 114.75], 'Trường Sa');
   label([13.5, 112.1], 'Biển Đông', 'sea');
+  label([9.82, 103.97], 'Phú Quốc');
+  label([19.75, 107.95], 'Vịnh Bắc Bộ', 'sea');
+  label([10.6, 101.9], 'Vịnh Thái Lan', 'sea');
+  label([23.0, 109.6], 'Trung Quốc', 'neighbor');
+  label([19.3, 102.6], 'Lào', 'neighbor');
+  label([15.7, 101.2], 'Thái Lan', 'neighbor');
+  label([12.7, 104.6], 'Campuchia', 'neighbor');
 
   // Marker to/nhỏ theo zoom, tên tỉnh chỉ hiện khi zoom đủ gần
   var root = document.getElementById('map');
@@ -217,7 +230,7 @@ const SCRIPT = String.raw`
 const CSS = `
 html, body, #map { margin: 0; padding: 0; width: 100%; height: 100%; background: ${BG}; }
 body { font-family: Inter, -apple-system, Roboto, "Segoe UI", Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
-.leaflet-container { background: ${BG}; font-family: Inter, -apple-system, Roboto, "Segoe UI", Arial, sans-serif; }
+.leaflet-container { background: #DAD9D3; font-family: Inter, -apple-system, Roboto, "Segoe UI", Arial, sans-serif; }
 .leaflet-control-attribution { font-size: 9px; }
 .label-wrap, .province-wrap, .battle-wrap, .note-wrap { background: none; border: 0; }
 .label { font-family: inherit; color: #111; font-size: 13px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; text-align: center;
@@ -225,6 +238,7 @@ body { font-family: Inter, -apple-system, Roboto, "Segoe UI", Arial, sans-serif;
 .label.country { color: #9A2A18; font-size: 20px; letter-spacing: .12em; }
 .label.region { color: rgba(17,17,17,.46); font-size: 12px; font-weight: 700; letter-spacing: .12em; }
 .label.sea { color: rgba(17,17,17,.5); font-size: 14px; font-weight: 700; letter-spacing: .14em; }
+.label.neighbor { color: rgba(17,17,17,.34); font-size: 13px; font-weight: 700; letter-spacing: .22em; }
 .province { color: rgba(17,17,17,.72); font-size: 10px; font-weight: 700; line-height: 1.05; max-width: 92px; text-align: center;
   text-shadow: 0 1px 0 rgba(245,242,234,.95), 0 -1px 0 rgba(245,242,234,.72), 1px 0 0 rgba(245,242,234,.72), -1px 0 0 rgba(245,242,234,.72); }
 .province-wrap { opacity: 0; transition: opacity 180ms ease; }
@@ -265,6 +279,7 @@ var B = ${JSON.stringify(MAP_BOUNDS)};
 var NOTE = ${JSON.stringify(STUDY_NOTE_COLOR)};
 var ADM0 = ${JSON.stringify(vietnamAdm0)};
 var ADM1 = ${JSON.stringify(vietnamAdm1)};
+var NEIGHBORS = ${JSON.stringify(neighbors)};
 ${SCRIPT}
 </script>
 </body>

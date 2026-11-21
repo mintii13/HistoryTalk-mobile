@@ -1,6 +1,15 @@
 import { apiClient } from '@/lib/api-client';
 
+import { parseStoryScript } from '@/features/story/story-script';
+
 import type { LocalItem, LocalKind } from './types';
+
+/** storyScript tu API la JSON tuy y: chi giu khi dung dinh dang kich ban. */
+const normalize = (it: LocalItem, kind: LocalKind): LocalItem => ({
+  ...it,
+  type: it.type ?? kind,
+  storyScript: parseStoryScript(it.storyScript),
+});
 
 interface SpringPage<T> {
   content?: T[];
@@ -31,12 +40,12 @@ export const localContentApi = {
       `/student/local-contents/${pathOf(kind)}${toQuery(params)}`,
     );
     const items = Array.isArray(page) ? page : page?.content ?? [];
-    return items.map((it) => ({ ...it, type: it.type ?? kind }));
+    return items.map((it) => normalize(it, kind));
   },
 
   /** 404 neu chua xuat ban hoac khong thuoc truong cua hoc sinh. */
   getById: async (kind: LocalKind, id: string) => {
     const item = await apiClient<LocalItem>(`/student/local-contents/${pathOf(kind)}/${id}`);
-    return { ...item, type: item.type ?? kind };
+    return normalize(item, kind);
   },
 };

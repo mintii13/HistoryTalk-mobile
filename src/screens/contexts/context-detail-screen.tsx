@@ -414,10 +414,10 @@ export default function ContextDetailScreen() {
   const hasSkippedIntro = skippedIntroId === resolvedId;
   // Kich ban ke chuyen da xuat ban thay cho video gioi thieu (giong web).
   const story = isPlayableScript(ctx.storyScript) ? ctx.storyScript : null;
-  const shouldShowStory = !!story && (!hasSkippedIntro || manualStoryId === resolvedId);
-  const shouldAutoShowIntro = !story && !!videoUri && !hasSkippedIntro;
-  const shouldShowVideo =
-    shouldAutoShowIntro || (!!videoUri && manualVideoId === resolvedId);
+  // Lan dau mo: man chon Nghe ke chuyen / Xem video / Gap nhan vat (giong web), khi co kich ban hoac video.
+  const replayingStory = !!story && manualStoryId === resolvedId;
+  const shouldShowCover = (!!story || !!videoUri) && !hasSkippedIntro;
+  const shouldShowVideo = !!videoUri && manualVideoId === resolvedId;
   const closeVideo = () => {
     setSkippedIntroId(resolvedId ?? null);
     setManualVideoId(null);
@@ -438,15 +438,24 @@ export default function ContextDetailScreen() {
       {shouldShowVideo ? (
         <IntroVideo source={videoUri} title={ctx.name} onClose={closeVideo} />
       ) : null}
-      {story ? (
+      {story || videoUri ? (
         <ContextStoryModal
-          key={ctx.id}
-          visible={shouldShowStory}
+          // Remount between the cover and a replay so the replay opens straight on the player.
+          key={`${ctx.id}-${replayingStory ? "play" : "cover"}`}
+          visible={(shouldShowCover || replayingStory) && !shouldShowVideo}
           script={story}
           contextTitle={ctx.name}
+          coverImage={imageUri}
           characters={relatedCharacters}
+          hasVideo={!!videoUri}
+          onVideo={() => {
+            setSkippedIntroId(resolvedId ?? null);
+            setManualStoryId(null);
+            setManualVideoId(resolvedId ?? null);
+          }}
           onFinish={closeStory}
           onOpenChat={chatFromStory}
+          startImmediately={replayingStory}
         />
       ) : null}
 

@@ -1,16 +1,19 @@
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { BookOpenText, MessageCircle, User } from 'lucide-react-native';
+import { useState } from 'react';
 import { ActivityIndicator, Alert, Linking, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { ContextStoryModal } from '@/components/story/context-story-modal';
 import { EmptyState, GOLD, JADE, ListSkeleton, MEN_LAM, Pill, ScreenHeader, studentStyles } from '@/components/student/student-ui';
 import { Text } from '@/components/ui/text';
 import { BORDER, CARD, MUTED, ORANGE, TEXT, TEXT2 } from '@/constants/palette';
 import { characterApi } from '@/features/characters/api';
 import { primaryContext } from '@/features/characters/types';
 import { useStartChat } from '@/features/chat/hooks/use-start-chat';
-import { lifeYears, localYears, useStudentMaterial } from '@/features/local-contents/hooks';
+import { lifeYears, localYears, useStudentMaterial, useStudentMaterials } from '@/features/local-contents/hooks';
+import { isPlayableScript } from '@/features/story/story-script';
 import { LOCAL_CATEGORY_LABELS, LOCAL_ERA_LABELS, type LocalItem } from '@/features/local-contents/types';
 
 function MetaRow({ label, value }: { label: string; value?: string | null }) {
@@ -30,6 +33,10 @@ export default function MaterialDetailScreen() {
   const localKind = kind === 'character' ? 'CHARACTER' : 'CONTEXT';
   const { data: item, isLoading, refetch } = useStudentMaterial(localKind, id);
   const { startChat, startingId } = useStartChat();
+  // Ke chuyen (visual novel): man chon lan dau mo boi canh, roi phat lai tu nut trong trang (giong web).
+  const { data: materials = [] } = useStudentMaterials();
+  const [skippedIntroId, setSkippedIntroId] = useState<string | null>(null);
+  const [replayId, setReplayId] = useState<string | null>(null);
 
   async function chat(it: LocalItem) {
     try {
@@ -68,11 +75,46 @@ export default function MaterialDetailScreen() {
   }
 
   const isCharacter = item.type === 'CHARACTER';
+  const story = !isCharacter && isPlayableScript(item.storyScript) ? item.storyScript : null;
+  const videoUrl = !isCharacter ? item.videoUrl?.trim() || null : null;
+  // Nguoi noi trong truyen = nhan vat cua truong lien ket voi boi canh nay.
+  const cast = materials.filter((m) => m.type === 'CHARACTER' && m.contextIds?.includes(item.id));
+  const replaying = !!story && replayId === item.id;
+  const showCover = (!!story || !!videoUrl) && skippedIntroId !== item.id;
+  const closeIntro = () => {
+    setSkippedIntroId(item.id);
+    setReplayId(null);
+  };
+  const openVideo = () => {
+    closeIntro();
+    if (videoUrl) void Linking.openURL(videoUrl);
+  };
+  const chatFromStory = (characterId: string) => {
+    const character = cast.find((c) => c.id === characterId);
+    if (!character) return;
+    closeIntro();
+    void chat(character);
+  };
   const tint = isCharacter ? GOLD : JADE;
   const coords = item.latitude != null && item.longitude != null ? `${item.latitude.toFixed(4)}, ${item.longitude.toFixed(4)}` : null;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: 'transparent' }} edges={['top']}>
+      {story || videoUrl ? (
+        <ContextStoryModal
+          key={`${item.id}-${replaying ? 'play' : 'cover'}`}
+          visible={showCover || replaying}
+          script={story}
+          contextTitle={item.name}
+          coverImage={item.imageUrl}
+          characters={cast}
+          hasVideo={!!videoUrl}
+          onVideo={openVideo}
+          onFinish={closeIntro}
+          onOpenChat={chatFromStory}
+          startImmediately={replaying}
+        />
+      ) : null}
       <ScreenHeader title={isCharacter ? 'Nhân vật' : 'Bối cảnh'} />
       <ScrollView contentContainerStyle={{ padding: 20, gap: 16, paddingBottom: 48 }}>
         <View style={[s.hero, { backgroundColor: `${tint}1A` }]}>
@@ -140,6 +182,13 @@ export default function MaterialDetailScreen() {
             <Text style={s.sectionTitle}>Tính cách khi trò chuyện với AI</Text>
             <Text style={s.body}>{item.personality}</Text>
           </View>
+        ) : null}
+
+        {story ? (
+          <TouchableOpacity onPress={() => setReplayId(item.id)} style={studentStyles.primaryBtn} activeOpacity={0.8}>
+            <BookOpenText size={18} color="#fff" />
+            <Text style={studentStyles.primaryBtnText}>Nghe kể chuyện</Text>
+          </TouchableOpacity>
         ) : null}
 
         {!isCharacter && item.videoUrl ? (

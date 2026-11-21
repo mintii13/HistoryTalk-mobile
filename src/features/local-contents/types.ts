@@ -1,3 +1,5 @@
+import type { StoryScript } from '@/features/story/types';
+
 export type LocalKind = 'CONTEXT' | 'CHARACTER';
 export type LocalScope = 'CLASS_ONLY' | 'SCHOOL_WIDE';
 export type LocalEra = 'ANCIENT' | 'MEDIEVAL' | 'MODERN' | 'CONTEMPORARY';
@@ -28,6 +30,8 @@ export interface LocalItem {
   isBC?: boolean | null;
   location?: string | null;
   videoUrl?: string | null;
+  /** Kich ban ke chuyen (visual novel); hoc sinh chi nhan ban da xuat ban (BE bo han key khi khong co). */
+  storyScript?: StoryScript | null;
   latitude?: number | null;
   longitude?: number | null;
   // CHARACTER
